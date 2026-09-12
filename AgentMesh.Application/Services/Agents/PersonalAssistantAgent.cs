@@ -1,15 +1,4 @@
 using AgentMesh.Application.Contracts;
-using AgentMesh.Application.Exceptions;
-using AgentMesh.Application.Models.Agents;
-using AgentMesh.Application.Models.Conversation;
-using AgentMesh.Application.Models.Parameters;
-using AgentMesh.Application.Models.Workflows;
-using AgentMesh.Application.Services.Helpers;
-using AgentMesh.Application.Utils;
-using Microsoft.Extensions.Logging;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-
 namespace AgentMesh.Application.Services.Agents
 {
     public sealed class PersonalAssistantAgent(
@@ -49,7 +38,7 @@ namespace AgentMesh.Application.Services.Agents
                     throw new BadStructuredResponseException(rawResponseText, "The model's response could not be deserialized into the expected format.");
                 }
 
-                // per decommentare dovremmo far arrivare in questa funzione il parametro di input RequestFailed, e poi fare un check su quello, ma non è chiaro se sia il caso di farlo qui o in un altro punto del flusso
+                // per decommentare dovremmo far arrivare in questa funzione il parametro di input RequestFailed, e poi fare un check su quello, ma non ï¿½ chiaro se sia il caso di farlo qui o in un altro punto del flusso
                 //if (responseDTO.IsDataAnActualError && string.IsNullOrWhiteSpace(responseDTO.ConvenienceErrorSentence))
                 //{
                 //    _logger.LogWarning("The model's response signals an error but contains no convenienceErrorSentence. Response text: {ResponseText}", rawResponseText);

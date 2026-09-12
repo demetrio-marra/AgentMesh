@@ -1,5 +1,5 @@
 using AgentMesh.Application.Exceptions;
-using AgentMesh.Application.Models.CodeSandbox;
+using AgentMesh.Models.CodeSandbox;
 using AgentMesh.Application.Models.Parameters;
 using AgentMesh.Application.Services.Executors;
 using AgentMesh.Models;

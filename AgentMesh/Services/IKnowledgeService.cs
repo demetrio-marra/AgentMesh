@@ -1,7 +1,6 @@
-﻿using AgentMesh.Application.Models.Knowledge;
-using System.Threading;
+using AgentMesh.Models.Knowledge;
 
-namespace AgentMesh.Application.Contracts
+namespace AgentMesh.Services
 {
     public interface IKnowledgeService
     {

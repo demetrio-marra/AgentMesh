@@ -1,4 +1,4 @@
-﻿namespace AgentMesh.Application.Contracts
+namespace AgentMesh.Application.Contracts
 {
     public interface IOpenAIClientFactory
     {

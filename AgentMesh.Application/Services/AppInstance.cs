@@ -2,6 +2,7 @@
 using AgentMesh.Application.Models.Conversation;
 using AgentMesh.Application.Models.Costs;
 using AgentMesh.Application.Models.Workflows;
+using AgentMesh.Application.Services.Pipelines;
 using AgentMesh.Models;
 using AgentMesh.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,14 +10,18 @@ using Microsoft.Extensions.DependencyInjection;
 namespace AgentMesh.Application.Services
 {
     /// <summary>
-    /// This class is the API layer for the application. It is responsible for managing the conversation context and processing user requests. It uses dependency injection to access the necessary services and maintains the state of the conversation.
+    /// This class manages stateful conversation context and processes user requests for interactive console mode.
     /// </summary>
-    /// <param name="serviceProvider"></param>
-    /// <param name="conversationContext"></param>
+    /// <param name="serviceProvider">The root service provider.</param>
+    /// <param name="conversationContext">The stateful conversation context.</param>
+    /// <param name="agentsConfigurations">Configurations for registered agents.</param>
+    /// <param name="conversationSummarizerConfiguration">Configuration for conversation summarization.</param>
+    /// <param name="pluginHostState">Startup plugin host validation state.</param>
     public class AppInstance(IServiceProvider serviceProvider,
         ConversationContext conversationContext,
         IEnumerable<AgentFlatConfigurationRecord> agentsConfigurations,
-        ConversationSummarizationConfiguration conversationSummarizerConfiguration)
+        ConversationSummarizationConfiguration conversationSummarizerConfiguration,
+        PluginHostState pluginHostState)
     {
         public int CountOfMessages { get => conversationContext.Conversation.Count(); }
         public int CountOfTokensInContext { get => conversationContext.TokensCount; }
@@ -33,11 +38,16 @@ namespace AgentMesh.Application.Services
 
         public async Task<WorkflowResult> ProcessRequest(string message, CancellationToken cancellationToken)
         {
+            return await ProcessRequest(message, pipelineName: null, cancellationToken);
+        }
+
+        public async Task<WorkflowResult> ProcessRequest(string message, string? pipelineName, CancellationToken cancellationToken)
+        {
             var requestDatetime = DateTime.UtcNow;
 
             var executionScope = serviceProvider.CreateScope();
 
-            var pipeline = executionScope.ServiceProvider.GetRequiredService<IChatRequestPipeline>();
+            var pipeline = ResolvePipeline(executionScope.ServiceProvider, pipelineName);
             pipeline.SetParameterInitialValues(message, conversationContext.Conversation.ToList(), requestDatetime);
 
             var stepsStats = await pipeline.ExecuteAsync(cancellationToken);
@@ -130,6 +140,51 @@ namespace AgentMesh.Application.Services
                 CountOfTokensBeforeSummarization = countOfTokensBeforeSummarization,
                 CumulatedCost = CumulatedCost
             };
+        }
+
+        private IChatRequestPipeline ResolvePipeline(IServiceProvider scopedServiceProvider, string? pipelineName)
+        {
+            var pipelines = scopedServiceProvider.GetServices<IChatRequestPipeline>().ToList();
+
+            var duplicatePipelineNames = pipelines
+                .GroupBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+                .Where(g => string.IsNullOrWhiteSpace(g.Key) || g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+
+            if (duplicatePipelineNames.Count > 0)
+            {
+                throw PipelineRoutingException.PluginConfigurationInvalid();
+            }
+
+            if (pluginHostState.HasConfigurationIssues)
+            {
+                throw PipelineRoutingException.PluginConfigurationInvalid();
+            }
+
+            if (string.IsNullOrWhiteSpace(pipelineName))
+            {
+                if (pipelines.Count == 0)
+                {
+                    throw PipelineRoutingException.NoPipelinesLoaded();
+                }
+
+                if (pipelines.Count > 1)
+                {
+                    throw PipelineRoutingException.PipelineNameRequired();
+                }
+
+                return pipelines[0];
+            }
+
+            var match = pipelines.FirstOrDefault(p => string.Equals(p.Name, pipelineName, StringComparison.OrdinalIgnoreCase));
+
+            if (match is null)
+            {
+                throw PipelineRoutingException.PipelineNotFound();
+            }
+
+            return match;
         }
 
 

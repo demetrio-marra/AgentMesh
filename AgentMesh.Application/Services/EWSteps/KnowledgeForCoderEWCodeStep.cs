@@ -1,4 +1,4 @@
-using AgentMesh.Application.Contracts;
+using AgentMesh.Services;
 using AgentMesh.Application.Models.Parameters;
 using AgentMesh.Models;
 using AgentMesh.Services;

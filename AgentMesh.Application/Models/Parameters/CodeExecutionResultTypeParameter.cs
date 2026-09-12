@@ -1,4 +1,4 @@
-using AgentMesh.Application.Models.CodeSandbox;
+using AgentMesh.Models.CodeSandbox;
 using AgentMesh.Models;
 
 namespace AgentMesh.Application.Models.Parameters

@@ -1,6 +1,4 @@
-﻿using AgentMesh.Application.Models.AgentMemory;
-using AgentMesh.Models;
-
+using AgentMesh.Application.Contracts;
 namespace AgentMesh.Application.Contracts
 {
     /// <summary>

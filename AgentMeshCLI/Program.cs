@@ -1,28 +1,6 @@
-using AgentMesh.Application.Configuration;
+using System.Reflection;
+using System.Text.Json.Serialization;
 using AgentMesh.Application.Contracts;
-using AgentMesh.Application.Models.Conversation;
-using AgentMesh.Application.Services;
-using AgentMesh.Application.Services.Executors;
-using AgentMesh.Application.Services.Helpers;
-using AgentMesh.Application.Services.Pipelines;
-using AgentMesh.Application.Utils;
-using AgentMesh.Authentication;
-using AgentMesh.Configuration;
-using AgentMesh.Helpers;
-using AgentMesh.Infrastructure.Cohere;
-using AgentMesh.Infrastructure.JSSandbox;
-using AgentMesh.Infrastructure.LightRag.Services;
-using AgentMesh.Infrastructure.LightRag.Configuration;
-using AgentMesh.Infrastructure.Mem0;
-using AgentMesh.Infrastructure.OpenAIClient;
-using AgentMesh.Models;
-using AgentMesh.Services;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 
 namespace AgentMesh
@@ -70,10 +48,21 @@ namespace AgentMesh
             webBuilder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.SchemeName)
                 .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationDefaults.SchemeName, _ => { });
             webBuilder.Services.AddAuthorization();
-            webBuilder.Services.AddControllers();
+            webBuilder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                });
             webBuilder.Services.AddEndpointsApiExplorer();
             webBuilder.Services.AddSwaggerGen(options =>
             {
+                options.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "AgentMesh API",
+                    Version = "v1",
+                    Description = "AgentMesh AI Agent Orchestration and Pipeline Execution API."
+                });
+
                 options.AddSecurityDefinition(ApiKeyAuthenticationDefaults.SchemeName, new OpenApiSecurityScheme
                 {
                     Name = apiKeyConfiguration.HeaderName,
@@ -96,6 +85,22 @@ namespace AgentMesh
                         Array.Empty<string>()
                     }
                 });
+
+                var xmlFiles = new[]
+                {
+                    $"{Assembly.GetExecutingAssembly().GetName().Name}.xml",
+                    "AgentMesh.xml",
+                    "AgentMesh.Application.xml"
+                };
+
+                foreach (var xmlFile in xmlFiles)
+                {
+                    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                    if (File.Exists(xmlPath))
+                    {
+                        options.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+                    }
+                }
             });
 
             var app = webBuilder.Build();
@@ -124,16 +129,35 @@ namespace AgentMesh
             var appSettings = new AppSettingsConfigurationDto();
             configuration.Bind(appSettings);
 
+            var pluginHostConfiguration = new PluginHostConfiguration();
+            configuration.GetSection(PluginHostConfiguration.SectionName).Bind(pluginHostConfiguration);
+
+            var pluginHostState = new PluginHostState();
+
             services.AddLogging(loggingBuilder =>
             {
                 loggingBuilder.AddConfiguration(configuration.GetSection("Logging"));
                 loggingBuilder.AddConsole();
             });
 
+            services.AddSingleton(pluginHostConfiguration);
+            services.AddSingleton(pluginHostState);
+
             services.AddKeyedSingleton<IEWParameterSerializer, DisplayValuesEWParameterSerializer>("DisplayParametersSerializer");
             services.AddKeyedSingleton<IEWParameterSerializer, DefaultEWParameterSerializer>("DefaultParametersSerializer");
             services.AddKeyedSingleton<IEWParameterSerializer, OmittedValueEWParameterSerializer>("OmittedValueParametersSerializer");
             services.AddSingleton<IOpenAIClientFactory, OpenAIClientFactory>();
+
+            using (var startupLoggerFactory = LoggerFactory.Create(loggingBuilder =>
+            {
+                loggingBuilder.AddConfiguration(configuration.GetSection("Logging"));
+                loggingBuilder.AddConsole();
+            }))
+            {
+                var startupLogger = startupLoggerFactory.CreateLogger<PluginHostBootstrapLoader>();
+                var pluginLoader = new PluginHostBootstrapLoader(pluginHostConfiguration, pluginHostState, startupLogger);
+                pluginLoader.LoadPlugins(services);
+            }
 
             foreach (var ewParameterType in AssemblyDiscoveryHelper.DiscoverEWParameterImplementations())
             {
@@ -151,7 +175,10 @@ namespace AgentMesh
             services.AddSingleton<IAgentInputSerializer, DefaultAgentInputSerializer>();
 
             services.AddScoped<IParameterStore, ParameterStore>();
-            services.AddScoped<IChatRequestPipeline, ChatRequestPipeline>();
+            if (pluginHostConfiguration.EnableBuiltInChatPipeline)
+            {
+                services.AddScoped<IChatRequestPipeline, ChatRequestPipeline>();
+            }
             services.AddScoped<ISummarizationPipeline, SummarizationPipeline>();
 
             var lightRagConfig = new LightRagServiceConfiguration();
@@ -214,6 +241,9 @@ namespace AgentMesh
 
             services.AddSingleton<ConversationContext>();
             services.AddSingleton<AppInstance>();
+            services.AddSingleton<StatelessAppInstance>();
+            services.AddSingleton<PipelineRegistryInitializer>();
+            services.AddHostedService<PipelineRegistryInitializerHostedService>();
         }
     }
 }

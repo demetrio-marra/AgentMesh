@@ -13,6 +13,7 @@ We need a clean split where:
 - Introduce plugin self-registration at startup through a plugin bootstrap contract instead of broad reflection scanning.
 - Support multiple `IChatRequestPipeline` implementations, each exposing a unique `Name`.
 - Add route-based pipeline selection and deterministic fallback behavior for the default route.
+- Introduce a dedicated stateless application instance for non-interactive mode that accepts caller-provided `IEnumerable<ContextMessage>` per request and bypasses host-side conversation summarization.
 - Standardize plugin-related operational errors as generic RFC7807 responses with redeploy guidance, without leaking internal plugin details.
 
 ## Capabilities
@@ -27,7 +28,7 @@ We need a clean split where:
 
 - No runtime/hot plugin discovery after container startup.
 - No plugin trust/isolation model design in this change.
-- No change to external request/response DTO schema (input and output remain immutable framework contracts).
+- No server-managed chat context or host-side context summarization in non-interactive mode (conversation state and summarization are managed by API callers).
 - No exposure of plugin internal diagnostics in public API error payloads.
 
 ## Impact

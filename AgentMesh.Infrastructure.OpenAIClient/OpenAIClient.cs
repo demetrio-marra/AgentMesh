@@ -1,12 +1,4 @@
-﻿using AgentMesh.Application.Contracts;
-using AgentMesh.Application.Exceptions;
-using AgentMesh.Application.Models.ChatClient;
-using AgentMesh.Application.Models.ChatMessages;
-using OpenAI;
-using OpenAI.Chat;
-using System.ClientModel;
-using System.Globalization;
-
+using AgentMesh.Application.Contracts;
 namespace AgentMesh.Infrastructure.OpenAIClient
 {
     public class OpenAIClient : IOpenAIClient
@@ -107,7 +99,7 @@ namespace AgentMesh.Infrastructure.OpenAIClient
                     }
                 }
             }
-            catch (ClientResultException ex) when (ex.Message.Contains("Tool choice is none, but model called a tool"))
+            catch (Exception ex) when (ex.GetType().Name == "ClientResultException" && ex.Message.Contains("Tool choice is none, but model called a tool"))
             {
                 throw new BadStructuredResponseException("", ex.Message, ex);
             }

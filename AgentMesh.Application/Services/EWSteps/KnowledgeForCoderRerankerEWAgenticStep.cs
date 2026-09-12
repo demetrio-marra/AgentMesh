@@ -1,7 +1,7 @@
-using AgentMesh.Application.Contracts;
-using AgentMesh.Application.Models.Knowledge;
+using AgentMesh.Services;
+using AgentMesh.Models.Knowledge;
 using AgentMesh.Application.Models.Parameters;
-using AgentMesh.Application.Models.Rerank;
+using AgentMesh.Models.Rerank;
 using AgentMesh.Models;
 using AgentMesh.Services;
 using System.Text;

@@ -1,6 +1,6 @@
-﻿using AgentMesh.Application.Models.Rerank;
+using AgentMesh.Models.Rerank;
 
-namespace AgentMesh.Application.Contracts
+namespace AgentMesh.Services
 {
     public interface IRerankerService
     {

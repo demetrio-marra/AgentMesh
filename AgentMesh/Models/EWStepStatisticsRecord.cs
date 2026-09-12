@@ -1,5 +1,20 @@
 ﻿namespace AgentMesh.Models
 {
+    /// <summary>
+    /// Represents execution statistics, token counts, and parameter changes for a single pipeline step.
+    /// </summary>
+    /// <param name="StepName">The name of the executed step.</param>
+    /// <param name="StartedOnUtc">Timestamp in UTC when step execution started.</param>
+    /// <param name="CompletedOnUtc">Timestamp in UTC when step execution finished.</param>
+    /// <param name="ParametersBefore">Parameter values prior to step execution.</param>
+    /// <param name="InputParameters">Parameters consumed as input by the step.</param>
+    /// <param name="ParametersAfter">Parameter values after step execution and mutation commit.</param>
+    /// <param name="IsAgentic">Indicates whether the step invoked an AI agent.</param>
+    /// <param name="AgentName">The name of the AI agent if agentic, otherwise null.</param>
+    /// <param name="CountInputTokensAsContextTokens">Whether input tokens count towards conversation context size.</param>
+    /// <param name="CountOutputTokensAsContextTokens">Whether output tokens count towards conversation context size.</param>
+    /// <param name="InputTokens">Number of prompt/input tokens consumed.</param>
+    /// <param name="OutputTokens">Number of completion/output tokens generated.</param>
     public record struct EWStepStatisticsRecord(string StepName,
         DateTime StartedOnUtc,
         DateTime CompletedOnUtc,

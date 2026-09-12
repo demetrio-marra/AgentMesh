@@ -1,5 +1,5 @@
-﻿using AgentMesh.Application.Models.AgentMemory;
-using AgentMesh.Application.Models.Knowledge;
+using AgentMesh.Application.Models.AgentMemory;
+using AgentMesh.Models.Knowledge;
 using AgentMesh.Application.Utils;
 using AgentMesh.Models;
 using AgentMesh.Services;

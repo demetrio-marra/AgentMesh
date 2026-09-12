@@ -1,6 +1,6 @@
-using AgentMesh.Application.Models.CodeSandbox;
+using AgentMesh.Models.CodeSandbox;
 
-namespace AgentMesh.Application.Contracts
+namespace AgentMesh.Services
 {
     public interface IJSSandbox
     {

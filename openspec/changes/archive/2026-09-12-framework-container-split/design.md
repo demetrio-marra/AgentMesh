@@ -65,6 +65,28 @@ Note: `openspec/config.yaml` references `openspec/changes/archive/2026-09-10-arc
 - **Alternatives considered:**
   - Detailed internal diagnostics in response: better debuggability but unsafe for callers.
 
+### Decision 7: Framework package boundaries are split across core and application packages
+- **Choice:** Publish `AgentMesh.Framework` from the `AgentMesh` project for core abstractions and immutable DTO/model contracts, and publish `AgentMesh.Framework.Application` from the `AgentMesh.Application` project for reusable orchestration/application building blocks.
+- **Boundary mapping:**
+  - `AgentMesh.Framework`: `IChatRequestPipeline`, `IEWPipeline`, `IEWStep`, `IEWAgent`, `IKnowledgeService`, `IRerankerService`, `IJSSandbox`, `IAgentMeshPluginBootstrap`, parameter contracts, immutable request-access DTOs (`ProcessRequestApiInput`), and plugin-facing knowledge/rerank/code-sandbox models.
+  - `AgentMesh.Framework.Application`: pipeline implementations, agent implementations, serializers, workflow helpers, resilience helpers, execution instances (`AppInstance` for interactive stateful mode, `StatelessAppInstance` for non-interactive mode), and application-only contracts such as `IOpenAIClient` and `IAgentMemoryService`.
+  - `AgentMeshCLI`: host composition root, API routing, plugin folder loading, and deployment-time configuration.
+- **Rationale:** Plugin authors can build against a stable framework package without taking a dependency on the host executable, while host-only concerns remain deployable and replaceable.
+- **Alternatives considered:**
+  - Single monolithic package: simpler to publish but leaks host/application concerns into plugin authoring.
+
+### Decision 8: Dedicated Stateless Application Instance for Non-Interactive Mode
+- **Choice:** Introduce a dedicated `StatelessAppInstance` (or non-interactive runner) in `AgentMesh.Application` used exclusively when `--interactive` is not set (API mode).
+- **Behavior:**
+  - Accepts `message`, `IEnumerable<ContextMessage>? conversation`, `pipelineName`, and `CancellationToken`.
+  - Does not depend on or mutate a persistent `ConversationContext`.
+  - Passes caller-supplied messages directly to `pipeline.SetParameterInitialValues(message, conversationMessages, requestDatetime)`.
+  - Completely omits server-managed context summarization (`ISummarizationPipeline`), leaving summarization strategy to the external caller.
+  - Returns `WorkflowResult` with per-request step statistics and execution cost calculations.
+- **Rationale:** Separates stateful console session lifecycle from stateless API scaling and eliminates unexpected context caching and auto-summarization side effects in containerized/distributed API workloads.
+- **Alternatives considered:**
+  - Branching inside existing `AppInstance`: complicates class responsibilities and introduces hidden conditional paths for state persistence and summarization.
+
 ## Risks / Trade-offs
 
 - **[Risk]** Hidden plugin startup issues may be discovered only on first request path hit.  
