@@ -14,8 +14,12 @@ The framework SHALL provide distributable NuGet package(s) containing the core c
 ## ADDED Requirements
 
 ### Requirement: Default pipeline behavior SHALL be deployable as a plugin
-The host SHALL support supplying the `default` chat pipeline and its conversation-summarization pipeline through a separately built plugin rather than implementations compiled into the host framework. The plugin assembly and its dependencies SHALL be made available in the configured plugin directory before host startup.
+The host SHALL support supplying the `default` chat pipeline and its conversation-summarization pipeline through a separately built plugin rather than implementations compiled into the host framework. The plugin assembly and its dependencies SHALL be made available in the configured plugin directory before host startup. API mode SHALL not give the summarization pipeline a dedicated route or special host behavior.
 
 #### Scenario: Host starts with manually deployed default plugin
 - **WHEN** an operator manually places the default-pipeline plugin and its dependencies in the configured plugin directory before startup
 - **THEN** the host loads the plugin, routes requests for the `default` pipeline to it, and makes its summarization pipeline available for explicit interactive invocation
+
+#### Scenario: API does not expose summarization as a special endpoint
+- **WHEN** an API host loads a plugin that provides a summarization pipeline
+- **THEN** the API exposes no dedicated summarization endpoint and retains its normal stateless chat request routes

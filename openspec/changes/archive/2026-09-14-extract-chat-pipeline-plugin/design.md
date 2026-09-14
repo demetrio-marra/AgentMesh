@@ -2,14 +2,14 @@
 
 See [proposal.md](proposal.md) for motivation. `ChatRequestPipeline` and `SummarizationPipeline`, their concrete agents, steps, parameters, prompts, and most supporting types currently live in `AgentMesh.Application`. `AgentMeshRuntime.RegisterCommonServices` registers the pipeline implementations directly and uses discovery for parameters, steps, and agents. Plugin assemblies are loaded before that discovery and can explicitly register services through `IAgentMeshPluginBootstrap`.
 
-`AppInstance` retains interactive conversation state and currently resolves `ISummarizationPipeline` when its threshold is exceeded. `StatelessAppInstance`, used by the API, accepts a caller-provided conversation per request and never resolves a summarizer. `ISummarizationPipeline`, `IChatRequestPipeline`, step/parameter abstractions, and the memory, knowledge, reranker, and sandbox contracts already belong to the framework boundary.
+`AppInstance` retains interactive conversation state and invokes `ISummarizationPipeline` only through the explicit CLI command. CLI startup requires a loaded plugin to register that pipeline. `StatelessAppInstance`, used by the API, accepts caller-provided conversation per request and does not give summarization any special route or behavior. `ISummarizationPipeline`, `IChatRequestPipeline`, step/parameter abstractions, and the memory, knowledge, reranker, and sandbox contracts belong to the framework boundary.
 
 ## Goals / Non-Goals
 
 **Goals:**
 - Produce a complete, buildable reference plugin that supplies both existing pipeline implementations through plugin bootstrap registration.
 - Make plugin, CLI, and API projects consume AgentMesh framework assemblies only as NuGet packages.
-- Make interactive context summarization an explicit user command while preserving API caller-owned context semantics.
+- Make interactive context summarization an explicit user command with a required plugin-provided pipeline, while preserving API caller-owned context semantics.
 - Keep all infrastructure adapter implementations host-provided.
 
 **Non-Goals:**
@@ -41,9 +41,9 @@ Alternative considered: use project references during local development and pack
 
 ### Make summarization an explicit CLI pipeline invocation
 
-`AppInstance` will no longer invoke `ISummarizationPipeline` as a side effect of processing a normal chat request, including when its context token threshold is exceeded. It will expose an explicit summarization operation over its current in-memory context. `UserConsoleInputService` will map `/summarize` to that operation, display its result/status, and retain `/new` as the operation that resets the conversation. The summarization threshold remains available for CLI status and user judgment; it does not trigger behavior.
+`AppInstance` will no longer invoke `ISummarizationPipeline` as a side effect of processing a normal chat request, including when its context token threshold is exceeded. It will expose an explicit summarization operation over its current in-memory context. `UserConsoleInputService` will map `/summarize` to that operation, display its result/status, and retain `/new` as the operation that resets the conversation. CLI composition validates that a loaded plugin registers `ISummarizationPipeline` and fails startup if it does not. The concrete summarization configuration belongs only to CLI; the plugin consumes a framework configuration contract and does not define the concrete settings class.
 
-`StatelessAppInstance` remains the API execution path: it passes caller-supplied messages into the selected chat pipeline, returns the result, and neither retains nor summarizes context. The API client owns context lifecycle and can use any separate summarization workflow it chooses outside the host. This produces the same host surface for both modes: chat requests execute chat pipelines, and summarization is an explicit pipeline operation rather than an automatic side effect.
+`StatelessAppInstance` remains the API execution path: it passes caller-supplied messages into the selected chat pipeline, returns the result, and neither retains nor summarizes context. It does not expose or invoke a dedicated summarization endpoint; API clients manage context and any summarization workflow outside the host. This keeps the API surface limited to normal stateless chat request routes.
 
 Alternative considered: have the API host transparently summarize caller context or preserve CLI auto-summarization. Rejected because either option leaves host mode behavior asymmetric and couples normal chat processing to conversation retention policy.
 
@@ -52,12 +52,12 @@ Alternative considered: have the API host transparently summarize caller context
 - [Package restore cannot locate locally produced framework packages] -> Document and configure a compatible package source/version before building dependent projects; validate restore from package references.
 - [Plugin dependency DLLs are incomplete when manually deployed] -> Keep deployment manual as requested and document that the plugin assembly and all runtime dependencies must be staged together before host startup.
 - [Moving shared types breaks host compilation] -> Classify each moved type by its pipeline ownership; retain common abstractions/runtime and update package public APIs before removing implementations.
-- [Interactive command has no summarizer] -> Validate host startup with the sample plugin staged, ensure the bootstrap registers `ISummarizationPipeline`, and report a clear command failure when it cannot be resolved.
+- [CLI starts without a summarizer] -> Validate CLI startup with and without the sample plugin staged; require a clear startup failure when no plugin registers `ISummarizationPipeline`.
 
 ## Migration Plan
 
 1. Create and package the framework assemblies required by host and plugin consumers, then switch CLI/API and plugin references to those packages.
 2. Create the sample plugin and move the complete pipeline implementation graph, prompts, and plugin configuration into it; add its bootstrap registrations.
 3. Remove duplicate implementations and registrations from `AgentMesh.Application` while retaining shared runtime and abstract types.
-4. Build and test with the sample plugin manually staged in each host's configured `Plugins` directory; verify `/summarize` invokes the interactive summarization pipeline, normal CLI requests do not summarize automatically, and API execution remains stateless.
+4. Build and test with the sample plugin manually staged in each host's configured `Plugins` directory; verify CLI startup requires the plugin summarizer, `/summarize` invokes it, normal CLI requests do not summarize automatically, and API exposes no dedicated summarization route.
 5. Roll back by restoring the direct project references and built-in registrations, then removing the staged sample plugin; no data migration is required.

@@ -16,17 +16,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AgentMesh.Application\AgentMesh.Application.csproj" />
+    <PackageReference Include="AgentMesh.Framework.Application" Version="1.0.6" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\AgentMesh.Application\appsettings.json" Link="appsettings.json">
+    <None Include="..\AgentMeshCLI\appsettings.json" Link="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\AgentMesh.Application\appsettings.Development.json" Link="appsettings.Development.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\AgentMesh.Application\Prompts\**\*.txt" Link="Prompts\%(RecursiveDir)%(Filename)%(Extension)">
+    <None Include="..\AgentMeshCLI\appsettings.Development.json" Link="appsettings.Development.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="appsettings.Api.json">

@@ -5,7 +5,7 @@ namespace AgentMesh.Helpers
 {
     public static class AgentConfigurationReadHelper
     {
-        public static IEnumerable<AgentFlatConfigurationRecord> ReadAgentConfigurations(AppSettingsConfigurationDto appSettings, string basePath)
+        public static IEnumerable<AgentFlatConfigurationRecord> ReadAgentConfigurations(AppSettingsConfigurationDto appSettings, string basePath, string pluginsPath)
         {
             foreach (var (agentName, agentConfiguration) in appSettings.Agents)
             {
@@ -36,12 +36,12 @@ namespace AgentMesh.Helpers
                     LLMClassCostPerMillionOutputTokens = llmConfiguration.CostPerMillionOutputTokens,
                     LLMClassCostPerHour = llmConfiguration.CostPerHour,
                     Temperature = agentConfiguration.ModelTemperature,
-                    SystemPrompt = ResolveSystemPrompt(agentConfiguration, basePath)
+                    SystemPrompt = ResolveSystemPrompt(agentConfiguration, basePath, pluginsPath)
                 };
             }
         }
 
-        private static string ResolveSystemPrompt(AgentConfigurationDto agentConfiguration, string basePath)
+        private static string ResolveSystemPrompt(AgentConfigurationDto agentConfiguration, string basePath, string pluginsPath)
         {
             if (!string.IsNullOrWhiteSpace(agentConfiguration.SystemPrompt))
             {
@@ -59,7 +59,15 @@ namespace AgentMesh.Helpers
 
             if (!File.Exists(promptFilePath))
             {
-                throw new FileNotFoundException($"System prompt file not found: {promptFilePath}");
+                var pluginsBasePath = Path.IsPathRooted(pluginsPath)
+                    ? pluginsPath
+                    : Path.Combine(basePath, pluginsPath);
+                promptFilePath = Path.Combine(pluginsBasePath, agentConfiguration.SystemPromptFile);
+
+                if (!File.Exists(promptFilePath))
+                {
+                    return string.Empty;
+                }
             }
 
             return File.ReadAllText(promptFilePath);

@@ -3,6 +3,7 @@ using AgentMesh.Application.Models.Conversation;
 using AgentMesh.Application.Models.Costs;
 using AgentMesh.Application.Models.Workflows;
 using AgentMesh.Application.Services.Pipelines;
+using AgentMesh.Configuration;
 using AgentMesh.Models;
 using AgentMesh.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,12 +16,10 @@ namespace AgentMesh.Application.Services
     /// <param name="serviceProvider">The root service provider.</param>
     /// <param name="conversationContext">The stateful conversation context.</param>
     /// <param name="agentsConfigurations">Configurations for registered agents.</param>
-    /// <param name="conversationSummarizerConfiguration">Configuration for conversation summarization.</param>
     /// <param name="pluginHostState">Startup plugin host validation state.</param>
     public class AppInstance(IServiceProvider serviceProvider,
         ConversationContext conversationContext,
         IEnumerable<AgentFlatConfigurationRecord> agentsConfigurations,
-        ConversationSummarizationConfiguration conversationSummarizerConfiguration,
         PluginHostState pluginHostState)
     {
         public int CountOfMessages { get => conversationContext.Conversation.Count(); }
@@ -74,57 +73,6 @@ namespace AgentMesh.Application.Services
 
             conversationContext.TokensCount = inputTokens + outputTokens;
 
-            bool summarizerHasRun = false;
-
-            int? countOfMessagesBeforeSummarization = null;
-            int? countOfTokensBeforeSummarization = null;
-
-            if (conversationContext.RequiresSummarization)
-            {
-                var cntBefore = conversationContext.Conversation.Count();
-                var cntTokensBefore = conversationContext.TokensCount;
-
-                var countOfMessagesToPreserve = cntBefore < conversationSummarizerConfiguration.NumMessageToPreseve ? 
-                    cntBefore : conversationSummarizerConfiguration.NumMessageToPreseve;
-
-                var countOfMessagesToIncludeInSummarization = cntBefore - countOfMessagesToPreserve;
-
-                if (countOfMessagesToIncludeInSummarization > 0)
-                {
-                    var messagesToSummarize = conversationContext.Conversation.Take(countOfMessagesToIncludeInSummarization).ToList();
-
-                    var summarizationPipeline = executionScope.ServiceProvider.GetRequiredService<ISummarizationPipeline>();
-                    summarizationPipeline.SetParameterInitialValues(conversationSummarizerConfiguration.SummarizeLanguage, messagesToSummarize, requestDatetime);
-
-                    var summarizationStepStats = await summarizationPipeline.ExecuteAsync(cancellationToken);
-                    usageStatistics.AddRange(summarizationStepStats.ToList());
-
-                    var summarizationContentParameter = summarizationPipeline.SummarizedContent;
-                    var summarizationDatetimeParameter = summarizationPipeline.SummarizedContentDatetime;
-
-                    var summaryMessage = new ContextMessage
-                    {
-                        Role = ContextMessageRole.Assistant,
-                        Date = summarizationDatetimeParameter,
-                        Text = summarizationContentParameter
-                    };
-
-                    // Rimuoviamo i messaggi che sono stati riassunti e li sostituiamo con il messaggio di riepilogo
-                    var messagesToKeep = conversationContext.Conversation.Skip(countOfMessagesToIncludeInSummarization).ToList();
-                    conversationContext.Conversation = messagesToKeep.Prepend(summaryMessage).ToList();
-
-                    // Numero simbolico.
-                    // Per avere reale accuratezza dovremmo aggiungere il conteggio dei token a ciascun messaggio nel chatcontext
-                    // in modo da poterlo sommare al numero di token del messaggio di riepilogo. Per ora, impostiamo un numero simbolico.
-                    // Ad ogni modo, il corretto numero di token sarà ristabilito alla successiva richiesta
-                    conversationContext.TokensCount = 100;
-
-                    countOfMessagesBeforeSummarization = cntBefore;
-                    countOfTokensBeforeSummarization = cntTokensBefore;
-                    summarizerHasRun = true;
-                }
-            }
-
             var agentsCosts = CalculateExecutionCosts(usageStatistics);
             CumulatedCost += agentsCosts.Sum(c => c.TotalCost);
 
@@ -132,7 +80,65 @@ namespace AgentMesh.Application.Services
             {
                 Message = answerText,
                 MainPipelineStepsData = usageStatistics,
-                ContextSummarizerHasRun = summarizerHasRun,
+                ContextSummarizerHasRun = false,
+                AgentsCostData = agentsCosts,
+                CountOfMessages = conversationContext.Conversation.Count(),
+                CountOfTokens = conversationContext.TokensCount,
+                CountOfMessagesBeforeSummarization = null,
+                CountOfTokensBeforeSummarization = null,
+                CumulatedCost = CumulatedCost
+            };
+        }
+
+        public async Task<WorkflowResult> SummarizeConversation(CancellationToken cancellationToken)
+        {
+            var countOfMessagesBeforeSummarization = conversationContext.Conversation.Count();
+            var countOfTokensBeforeSummarization = conversationContext.TokensCount;
+            using var executionScope = serviceProvider.CreateScope();
+            var conversationSummarizationSettings = executionScope.ServiceProvider.GetService<IConversationSummarizationSettings>()
+                ?? throw new InvalidOperationException("The loaded plugin must provide IConversationSummarizationSettings to use /summarize.");
+            var summarizationPipeline = executionScope.ServiceProvider.GetService<ISummarizationPipeline>()
+                ?? throw new InvalidOperationException("The loaded plugin must provide ISummarizationPipeline to use /summarize.");
+            var countOfMessagesToPreserve = Math.Min(countOfMessagesBeforeSummarization, conversationSummarizationSettings.NumMessageToPreseve);
+            var countOfMessagesToIncludeInSummarization = countOfMessagesBeforeSummarization - countOfMessagesToPreserve;
+
+            if (countOfMessagesToIncludeInSummarization <= 0)
+            {
+                return new WorkflowResult
+                {
+                    ContextSummarizerHasRun = false,
+                    CountOfMessages = countOfMessagesBeforeSummarization,
+                    CountOfTokens = countOfTokensBeforeSummarization,
+                    CumulatedCost = CumulatedCost
+                };
+            }
+
+            var requestDatetime = DateTime.UtcNow;
+            var messagesToSummarize = conversationContext.Conversation.Take(countOfMessagesToIncludeInSummarization).ToList();
+            summarizationPipeline.SetParameterInitialValues(conversationSummarizationSettings.SummarizeLanguage, messagesToSummarize, requestDatetime);
+
+            var stepsStats = (await summarizationPipeline.ExecuteAsync(cancellationToken)).ToList();
+            var summaryMessage = new ContextMessage
+            {
+                Role = ContextMessageRole.Assistant,
+                Date = summarizationPipeline.SummarizedContentDatetime,
+                Text = summarizationPipeline.SummarizedContent
+            };
+
+            conversationContext.Conversation = conversationContext.Conversation
+                .Skip(countOfMessagesToIncludeInSummarization)
+                .Prepend(summaryMessage)
+                .ToList();
+            conversationContext.TokensCount = 100;
+
+            var agentsCosts = CalculateExecutionCosts(stepsStats);
+            CumulatedCost += agentsCosts.Sum(cost => cost.TotalCost);
+
+            return new WorkflowResult
+            {
+                Message = summarizationPipeline.SummarizedContent,
+                MainPipelineStepsData = stepsStats,
+                ContextSummarizerHasRun = true,
                 AgentsCostData = agentsCosts,
                 CountOfMessages = conversationContext.Conversation.Count(),
                 CountOfTokens = conversationContext.TokensCount,

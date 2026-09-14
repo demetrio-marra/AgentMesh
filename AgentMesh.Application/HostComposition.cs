@@ -3,9 +3,7 @@ using AgentMesh.Application.Contracts;
 using AgentMesh.Application.Models.Conversation;
 using AgentMesh.Application.Services;
 using AgentMesh.Application.Services.Executors;
-using AgentMesh.Application.Services.Helpers;
 using AgentMesh.Application.Services.Pipelines;
-using AgentMesh.Application.Utils;
 using AgentMesh.Configuration;
 using AgentMesh.Helpers;
 using AgentMesh.Infrastructure.Cohere;
@@ -46,9 +44,6 @@ public static class AgentMeshRuntime
         });
         services.AddSingleton(pluginHostConfiguration);
         services.AddSingleton(pluginHostState);
-        services.AddKeyedSingleton<IEWParameterSerializer, DisplayValuesEWParameterSerializer>("DisplayParametersSerializer");
-        services.AddKeyedSingleton<IEWParameterSerializer, DefaultEWParameterSerializer>("DefaultParametersSerializer");
-        services.AddKeyedSingleton<IEWParameterSerializer, OmittedValueEWParameterSerializer>("OmittedValueParametersSerializer");
         services.AddSingleton<IOpenAIClientFactory, OpenAIClientFactory>();
 
         using (var startupLoggerFactory = LoggerFactory.Create(loggingBuilder =>
@@ -60,24 +55,8 @@ public static class AgentMeshRuntime
             new PluginHostBootstrapLoader(pluginHostConfiguration, pluginHostState, startupLoggerFactory.CreateLogger<PluginHostBootstrapLoader>()).LoadPlugins(services);
         }
 
-        foreach (var parameterType in AssemblyDiscoveryHelper.DiscoverEWParameterImplementations())
-        {
-            services.AddSingleton(parameterType);
-            services.AddSingleton(typeof(IEWParameterConfiguration), serviceProvider => (IEWParameterConfiguration)serviceProvider.GetRequiredService(parameterType));
-        }
-        foreach (var stepType in AssemblyDiscoveryHelper.DiscoverEWStepImplementations())
-        {
-            services.AddSingleton(stepType);
-        }
-
-        services.AddSingleton<IEnumerable<AgentFlatConfigurationRecord>>(AgentConfigurationReadHelper.ReadAgentConfigurations(appSettings, AppContext.BaseDirectory).ToArray());
-        services.AddSingleton<IAgentInputSerializer, DefaultAgentInputSerializer>();
+        services.AddSingleton<IEnumerable<AgentFlatConfigurationRecord>>(AgentConfigurationReadHelper.ReadAgentConfigurations(appSettings, AppContext.BaseDirectory, pluginHostConfiguration.PluginsPath).ToArray());
         services.AddScoped<IParameterStore, ParameterStore>();
-        if (pluginHostConfiguration.EnableBuiltInChatPipeline)
-        {
-            services.AddScoped<IChatRequestPipeline, ChatRequestPipeline>();
-        }
-        services.AddScoped<ISummarizationPipeline, SummarizationPipeline>();
 
         var lightRagConfiguration = new LightRagServiceConfiguration();
         configuration.GetSection(LightRagServiceConfiguration.SectionName).Bind(lightRagConfiguration);
@@ -94,16 +73,8 @@ public static class AgentMeshRuntime
         services.AddSingleton<AgentMemoryExecutor>();
         services.AddOptions<SESJSSandboxConfiguration>().Bind(configuration.GetSection("SESJSSandbox")).Services.AddSingleton(serviceProvider => serviceProvider.GetRequiredService<IOptions<SESJSSandboxConfiguration>>().Value);
         services.AddOptions<ResilienceConfiguration>().Bind(configuration.GetSection(ResilienceConfiguration.SectionName)).Services.AddSingleton(serviceProvider => serviceProvider.GetRequiredService<IOptions<ResilienceConfiguration>>().Value);
-        services.AddOptions<ConversationSummarizationConfiguration>().Bind(configuration.GetSection(ConversationSummarizationConfiguration.SectionName)).Services.AddSingleton(serviceProvider => serviceProvider.GetRequiredService<IOptions<ConversationSummarizationConfiguration>>().Value);
         services.AddSingleton<Resilience>();
 
-        foreach (var agentType in AssemblyDiscoveryHelper.DiscoverEWAgentImplementations())
-        {
-            services.AddSingleton(agentType);
-            services.AddSingleton(typeof(IEWAgent), serviceProvider => (IEWAgent)serviceProvider.GetRequiredService(agentType));
-        }
-
-        services.AddOptions<CodeModeWorkflowConfiguration>().Bind(configuration.GetSection(CodeModeWorkflowConfiguration.SectionName)).Services.AddSingleton(serviceProvider => serviceProvider.GetRequiredService<IOptions<CodeModeWorkflowConfiguration>>().Value);
         services.AddSingleton<JSSandboxExecutor>();
         services.AddSingleton<IJSSandbox, SESJSSandboxClient>();
         services.AddOptions<UserConfiguration>().Bind(configuration.GetSection(UserConfiguration.SectionName)).Services.AddSingleton(serviceProvider => serviceProvider.GetRequiredService<IOptions<UserConfiguration>>().Value);

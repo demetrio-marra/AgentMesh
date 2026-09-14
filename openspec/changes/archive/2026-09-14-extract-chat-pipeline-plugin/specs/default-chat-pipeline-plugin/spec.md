@@ -19,6 +19,10 @@ The distribution SHALL include a class-library sample plugin that preserves the 
 - **WHEN** an interactive CLI user enters `/summarize`
 - **THEN** the host invokes the sample plugin's summarization pipeline for the current in-memory conversation and replaces the summarized messages with its returned summary
 
+#### Scenario: CLI starts without a summarization pipeline
+- **WHEN** the CLI host starts and no loaded plugin provides an `ISummarizationPipeline`
+- **THEN** startup fails with an error that identifies the required plugin-provided summarization pipeline
+
 #### Scenario: Reaching the threshold does not summarize automatically
 - **WHEN** an interactive-mode conversation context reaches or exceeds the configured summarization threshold during a normal chat request
 - **THEN** the host retains the context without invoking the summarization pipeline until the user enters `/summarize`
@@ -40,6 +44,13 @@ The sample plugin project SHALL reference required AgentMesh framework APIs thro
 #### Scenario: Plugin project has no direct application-project dependency
 - **WHEN** a developer inspects the sample plugin project references
 - **THEN** AgentMesh framework dependencies are NuGet package references and no project reference targets `AgentMesh.Application`
+
+### Requirement: Concrete summarization configuration SHALL be CLI-owned
+The concrete configuration class that defines the summarization language and retention policy SHALL be owned by the CLI project. Framework and plugin projects SHALL not define that concrete configuration class; the plugin SHALL consume only framework configuration contracts required to execute its pipeline.
+
+#### Scenario: Configuration ownership is inspected
+- **WHEN** a developer inspects the solution's summarization configuration types
+- **THEN** the sole concrete summarization configuration class is in the CLI project and neither framework nor sample plugin defines it
 
 ### Requirement: Plugin deployment SHALL remain host-operator managed
 Building the sample plugin SHALL not automatically copy, publish, or configure its output into a CLI or API host plugin directory.

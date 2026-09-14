@@ -11,7 +11,6 @@ namespace AgentMesh.Services
         UserConfiguration userConfiguration,
         SESJSSandboxConfiguration sesJSSandboxConfiguration,
         IEnumerable<AgentFlatConfigurationRecord> agentsConfigurations,
-        ConversationSummarizationConfiguration conversationSummarizerConfiguration,
         AppInstance appInstance) : BackgroundService
     {
         public async Task Run(CancellationToken cancellationToken)
@@ -52,6 +51,29 @@ namespace AgentMesh.Services
                     continue;
                 }
 
+                if (string.Equals(requestText?.Trim(), "/summarize", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        var summarizationResult = await appInstance.SummarizeConversation(cancellationToken);
+                        if (summarizationResult.ContextSummarizerHasRun)
+                        {
+                            ConsoleHelper.WriteLineWithColor("Chat conversation has been summarized.", ConsoleColor.Green);
+                            ConsoleHelper.PrintTokenUsageSummary(summarizationResult.MainPipelineStepsData, summarizationResult.AgentsCostData);
+                        }
+                        else
+                        {
+                            ConsoleHelper.WriteLineWithColor("There are not enough messages to summarize.", ConsoleColor.Yellow);
+                        }
+                    }
+                    catch (InvalidOperationException exception)
+                    {
+                        ConsoleHelper.WriteLineWithColor(exception.Message, ConsoleColor.Red);
+                    }
+
+                    continue;
+                }
+
                 if (isFirstRun)
                 {
                     ConsoleHelper.WriteLineWithColor("You can cancel the current request by pressing Ctrl+C.\n", ConsoleColor.Yellow);
@@ -71,7 +93,7 @@ namespace AgentMesh.Services
                     ConsoleHelper.WriteLineWithColor("\nResponse for user:", ConsoleColor.Gray);
                     ConsoleHelper.WriteLineWithColor(executionResult.Message, ConsoleColor.Cyan);
 
-                    ConsoleHelper.WriteLineWithColor($"\n\nConversation status:\nCount of messages {executionResult.CountOfMessages}\nCount of tokens: {executionResult.CountOfTokens}/{conversationSummarizerConfiguration.SummaryTokenThreshold}\nCumulated cost: {Math.Round(executionResult.CumulatedCost, 2)} $", ConsoleColor.Gray);
+                    ConsoleHelper.WriteLineWithColor($"\n\nConversation status:\nCount of messages {executionResult.CountOfMessages}\nCount of tokens: {executionResult.CountOfTokens}\nCumulated cost: {Math.Round(executionResult.CumulatedCost, 2)} $", ConsoleColor.Gray);
                     if (executionResult.ContextSummarizerHasRun)
                     {
                         ConsoleHelper.WriteLineWithColor($"Chat conversation has been summarized. Count of messages before: {executionResult.CountOfMessagesBeforeSummarization}", ConsoleColor.White);
@@ -124,7 +146,6 @@ namespace AgentMesh.Services
         private void PrintConfigurations()
         {
             Console.WriteLine($"Sandbox:\n\tUrl: {sesJSSandboxConfiguration.SandboxServiceURL}\n\tName: {sesJSSandboxConfiguration.SandboxName}\n\tAgentId: {userConfiguration.AgentId}\n");
-            Console.WriteLine($"Conversation summarization configuration:\n\tSummaryTokenThreshold: {conversationSummarizerConfiguration.SummaryTokenThreshold}\n\tNumMessageToPreseve: {conversationSummarizerConfiguration.NumMessageToPreseve}\n");
             Console.WriteLine("Agent configurations:");
             foreach (var agentConfig in agentsConfigurations)
             {
@@ -139,6 +160,7 @@ namespace AgentMesh.Services
             Console.WriteLine("/help - Show this help message");
             Console.WriteLine("/exit - Exit the application");
             Console.WriteLine("/new - Initializes a new conversation");
+            Console.WriteLine("/summarize - Summarizes the current conversation");
             Console.WriteLine("Ctrl+C - Cancel the current request");
             Console.WriteLine("Any other text will be treated as a question to the AgentMesh system.\n");
         }

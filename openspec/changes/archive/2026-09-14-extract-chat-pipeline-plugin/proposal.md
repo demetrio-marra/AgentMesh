@@ -8,7 +8,7 @@ The built-in chat pipeline is still compiled into `AgentMesh.Application`, so th
 - Make the sample plugin reference AgentMesh framework packages through NuGet packages only; it must not directly reference `AgentMesh.Application`.
 - Register the sample pipeline and all of its plugin-owned dependencies through an `IAgentMeshPluginBootstrap` implementation while continuing to consume framework-provided memory, knowledge, reranker, and sandbox services through their framework contracts.
 - Remove the extracted chat and summarization pipeline implementations and their registrations from `AgentMesh.Application`; preserve framework runtime services there.
-- Replace automatic interactive-context summarization with an explicit CLI `/summarize` command that invokes the plugin-provided summarization pipeline for the current in-memory conversation.
+- Replace automatic interactive-context summarization with an explicit CLI `/summarize` command; CLI startup requires a loaded plugin to provide the summarization pipeline, while API treats it as an ordinary plugin capability without a dedicated endpoint.
 - **BREAKING** Change CLI and API project references from direct framework project references to NuGet package references only, including their application configuration and prompt content handling.
 - Do not add build, copy, or packaging configuration that deploys plugin artifacts into either host's `bin/Plugins` directory; deployment remains a manual host operation.
 
@@ -33,3 +33,4 @@ The built-in chat pipeline is still compiled into `AgentMesh.Application`, so th
 - Do not change chat-pipeline decision logic or user-facing request behavior.
 - Do not automate plugin deployment, hot reload, or copying artifacts into host plugin folders.
 - Do not change API mode's caller-owned conversation context or replace framework-provided infrastructure adapters.
+- Do not expose a dedicated API summarization endpoint.

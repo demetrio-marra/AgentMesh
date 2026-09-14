@@ -5,6 +5,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
     <RootNamespace>AgentMesh</RootNamespace>
@@ -27,17 +28,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AgentMesh.Application\AgentMesh.Application.csproj" />
+    <PackageReference Include="AgentMesh.Framework.Application" Version="1.0.6" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\AgentMesh.Application\appsettings.json" Link="appsettings.json">
+    <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\AgentMesh.Application\appsettings.Development.json" Link="appsettings.Development.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\AgentMesh.Application\Prompts\**\*.txt" Link="Prompts\%(RecursiveDir)%(Filename)%(Extension)">
+    <None Update="appsettings.Development.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

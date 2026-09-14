@@ -1,9 +1,8 @@
-﻿using AgentMesh.Application.Configuration;
-using AgentMesh.Models;
+﻿using AgentMesh.Models;
 
 namespace AgentMesh.Application.Models.Conversation
 {
-    public class ConversationContext(ConversationSummarizationConfiguration conversationSummarizerAgentConfiguration)
+    public class ConversationContext
     {
         public IEnumerable<ContextMessage> Conversation { get; set; } = [];
 
@@ -12,6 +11,5 @@ namespace AgentMesh.Application.Models.Conversation
         /// </summary>
         public int TokensCount { get; set; }
 
-        public bool RequiresSummarization => TokensCount >= conversationSummarizerAgentConfiguration.SummaryTokenThreshold;
     }
 }
