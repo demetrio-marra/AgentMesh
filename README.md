@@ -203,16 +203,19 @@ dotnet pack AgentMesh.Application/AgentMesh.Application.csproj -c Release
 
 ### Container deployment
 
-For containerized hosting, mount plugin assemblies into the host's `Plugins/` directory before startup.
+Build the API image from the repository root. Supply the API key and other deployment-specific settings through environment variables or mounted configuration; do not put secrets in the image.
 
 Docker example:
 
 ```bash
+docker build -f AgentMesh.Api/Dockerfile -t agentmesh-api .
 docker run \
   -p 8080:8080 \
-  -v ./plugins:/app/Plugins:ro \
-  agentmesh-cli:latest
+  -e ApiAuth__ApiKey=your-api-key \
+  agentmesh-api
 ```
+
+The API listens on container port `8080` and expects the API key in the `X-Api-Key` request header by default.
 
 Kubernetes example:
 
