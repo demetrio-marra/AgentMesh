@@ -1,4 +1,4 @@
-﻿namespace AgentMesh.Application.Models.ChatClient
+namespace AgentMesh.Application.Models.ChatClient
 {
     public class ChatClientResponse
     {

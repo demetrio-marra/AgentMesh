@@ -1,4 +1,4 @@
-﻿namespace AgentMesh.Application.Exceptions
+namespace AgentMesh.Application.Exceptions
 {
     public class BadStructuredResponseException : BadAgentResponseException
     {

@@ -13,8 +13,12 @@ internal static class Program
     private static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-        HostComposition.ConfigureConfiguration(builder.Configuration, builder.Environment.EnvironmentName);
-        HostComposition.RegisterCommonServices(builder.Services, builder.Configuration);
+        AgentMeshRuntime.ConfigureConfiguration(builder.Configuration, builder.Environment.EnvironmentName);
+        builder.Configuration
+            .AddJsonFile("appsettings.Api.json", optional: false, reloadOnChange: true)
+            .AddJsonFile($"appsettings.Api.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables();
+        AgentMeshRuntime.RegisterCommonServices(builder.Services, builder.Configuration);
 
         var apiKeyConfiguration = builder.Configuration
             .GetSection(ApiKeyAuthenticationConfiguration.SectionName)

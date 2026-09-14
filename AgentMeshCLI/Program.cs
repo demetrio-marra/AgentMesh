@@ -7,8 +7,8 @@ namespace AgentMesh
         static async Task Main(string[] args)
         {
             var builder = Host.CreateApplicationBuilder(args);
-            HostComposition.ConfigureConfiguration(builder.Configuration, builder.Environment.EnvironmentName);
-            HostComposition.RegisterCommonServices(builder.Services, builder.Configuration);
+            AgentMeshRuntime.ConfigureConfiguration(builder.Configuration, builder.Environment.EnvironmentName);
+            AgentMeshRuntime.RegisterCommonServices(builder.Services, builder.Configuration);
 
             builder.Services.AddSingleton<IWorkflowProgressNotifier, ConsoleWorkflowProgressNotifier>();
             builder.Services.AddHostedService<UserConsoleInputService>();

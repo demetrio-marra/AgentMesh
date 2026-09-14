@@ -7,33 +7,28 @@ using System.Reflection;
 
 namespace AgentMesh.Services
 {
-    public sealed class PluginHostBootstrapLoader(
-        PluginHostConfiguration pluginHostConfiguration,
-        PluginHostState pluginHostState,
-        ILogger<PluginHostBootstrapLoader> logger)
+    public sealed class PluginHostBootstrapLoader(PluginHostConfiguration pluginHostConfiguration, PluginHostState pluginHostState, ILogger<PluginHostBootstrapLoader> logger)
     {
         public void LoadPlugins(IServiceCollection services)
         {
-            var pluginsDirectory = GetPluginsDirectoryPath();
+            var pluginsDirectory = Path.IsPathRooted(pluginHostConfiguration.PluginsPath)
+                ? pluginHostConfiguration.PluginsPath
+                : Path.Combine(AppContext.BaseDirectory, pluginHostConfiguration.PluginsPath);
 
             if (!Directory.Exists(pluginsDirectory))
             {
-                var msg = $"Plugins directory '{pluginsDirectory}' does not exist. Startup continues without plugin assemblies.";
-                logger.LogInformation(msg);
-                pluginHostState.AddDiagnostic(msg);
+                var message = $"Plugins directory '{pluginsDirectory}' does not exist. Startup continues without plugin assemblies.";
+                logger.LogInformation(message);
+                pluginHostState.AddDiagnostic(message);
                 return;
             }
 
-            var pluginFiles = Directory
-                .GetFiles(pluginsDirectory, "*.dll", SearchOption.TopDirectoryOnly)
-                .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
+            var pluginFiles = Directory.GetFiles(pluginsDirectory, "*.dll", SearchOption.TopDirectoryOnly).OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToList();
             if (pluginFiles.Count == 0)
             {
-                var msg = $"No plugin assemblies found in '{pluginsDirectory}'.";
-                logger.LogInformation(msg);
-                pluginHostState.AddDiagnostic(msg);
+                var message = $"No plugin assemblies found in '{pluginsDirectory}'.";
+                logger.LogInformation(message);
+                pluginHostState.AddDiagnostic(message);
                 return;
             }
 
@@ -42,10 +37,7 @@ namespace AgentMesh.Services
                 try
                 {
                     var assembly = Assembly.LoadFrom(pluginFile);
-                    var bootstrapTypes = assembly.GetTypes()
-                        .Where(t => t.IsClass && !t.IsAbstract && typeof(IAgentMeshPluginBootstrap).IsAssignableFrom(t))
-                        .ToList();
-
+                    var bootstrapTypes = assembly.GetTypes().Where(type => type.IsClass && !type.IsAbstract && typeof(IAgentMeshPluginBootstrap).IsAssignableFrom(type)).ToList();
                     if (bootstrapTypes.Count == 0)
                     {
                         logger.LogInformation("Plugin assembly discovered with no bootstrap type: {PluginPath}", pluginFile);
@@ -67,22 +59,12 @@ namespace AgentMesh.Services
                         pluginHostState.AddDiagnostic($"Plugin bootstrap invoked for '{Path.GetFileName(pluginFile)}'.");
                     }
                 }
-                catch (Exception ex)
+                catch (Exception exception)
                 {
                     pluginHostState.AddStartupError($"Plugin assembly failed to load: '{Path.GetFileName(pluginFile)}'.");
-                    logger.LogError(ex, "Plugin assembly failed to load at startup. Plugin: {PluginPath}", pluginFile);
+                    logger.LogError(exception, "Plugin assembly failed to load at startup. Plugin: {PluginPath}", pluginFile);
                 }
             }
-        }
-
-        private string GetPluginsDirectoryPath()
-        {
-            if (Path.IsPathRooted(pluginHostConfiguration.PluginsPath))
-            {
-                return pluginHostConfiguration.PluginsPath;
-            }
-
-            return Path.Combine(AppContext.BaseDirectory, pluginHostConfiguration.PluginsPath);
         }
     }
 }

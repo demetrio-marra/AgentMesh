@@ -1,4 +1,4 @@
-﻿using AgentMesh.Models;
+using AgentMesh.Models;
 using AgentMesh.Services;
 using System.Reflection;
 
@@ -6,53 +6,17 @@ namespace AgentMesh.Helpers
 {
     internal static class AssemblyDiscoveryHelper
     {
-        internal static IEnumerable<Type> DiscoverEWParameterImplementations()
-        {
-            return GetAllAssemblies()
-                .SelectMany(GetTypesSafely)
-                .Where(IsEWParameterConfiguration)
-                .Distinct();
-        }
+        internal static IEnumerable<Type> DiscoverEWParameterImplementations() => GetAllAssemblies().SelectMany(GetTypesSafely).Where(IsEWParameterConfiguration).Distinct();
 
-        internal static IEnumerable<Type> DiscoverEWStepImplementations()
-        {
-            return GetAllAssemblies()
-                .SelectMany(GetTypesSafely)
-                .Where(IsConcreteEWStep)
-                .Distinct();
-        }
+        internal static IEnumerable<Type> DiscoverEWStepImplementations() => GetAllAssemblies().SelectMany(GetTypesSafely).Where(IsConcreteEWStep).Distinct();
 
-        internal static IEnumerable<Type> DiscoverEWAgentImplementations()
-        {
-            return GetAllAssemblies()
-                .SelectMany(GetTypesSafely)
-                .Where(IsConcreteEWAgent)
-                .Distinct();
-        }
+        internal static IEnumerable<Type> DiscoverEWAgentImplementations() => GetAllAssemblies().SelectMany(GetTypesSafely).Where(IsConcreteEWAgent).Distinct();
 
-        private static bool IsEWParameterConfiguration(Type type)
-        {
-            return type.IsClass
-                && !type.IsAbstract
-                && !type.ContainsGenericParameters
-                && typeof(IEWParameterConfiguration).IsAssignableFrom(type);
-        }
+        private static bool IsEWParameterConfiguration(Type type) => type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters && typeof(IEWParameterConfiguration).IsAssignableFrom(type);
 
-        private static bool IsConcreteEWStep(Type type)
-        {
-            return type.IsClass
-                && !type.IsAbstract
-                && !type.ContainsGenericParameters
-                && typeof(IEWStep).IsAssignableFrom(type);
-        }
+        private static bool IsConcreteEWStep(Type type) => type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters && typeof(IEWStep).IsAssignableFrom(type);
 
-        private static bool IsConcreteEWAgent(Type type)
-        {
-            return type.IsClass
-                && !type.IsAbstract
-                && !type.ContainsGenericParameters
-                && typeof(IEWAgent).IsAssignableFrom(type);
-        }
+        private static bool IsConcreteEWAgent(Type type) => type.IsClass && !type.IsAbstract && !type.ContainsGenericParameters && typeof(IEWAgent).IsAssignableFrom(type);
 
         private static IEnumerable<Assembly> GetAllAssemblies()
         {
@@ -86,7 +50,6 @@ namespace AgentMesh.Helpers
                     }
                     catch
                     {
-                        // Ignore assemblies that cannot be loaded.
                     }
                 }
             }
@@ -100,9 +63,9 @@ namespace AgentMesh.Helpers
             {
                 return assembly.GetTypes();
             }
-            catch (ReflectionTypeLoadException ex)
+            catch (ReflectionTypeLoadException exception)
             {
-                return ex.Types.Where(t => t != null)!;
+                return exception.Types.Where(type => type != null)!;
             }
             catch
             {

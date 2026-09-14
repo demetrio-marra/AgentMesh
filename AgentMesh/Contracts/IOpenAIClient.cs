@@ -1,4 +1,6 @@
-using AgentMesh.Application.Contracts;
+using AgentMesh.Application.Models.ChatClient;
+using AgentMesh.Application.Models.ChatMessages;
+
 namespace AgentMesh.Application.Contracts
 {
     public interface IOpenAIClient
