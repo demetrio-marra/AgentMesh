@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
 using AgentMesh.Application.Contracts;
+using AgentMesh.Application.Models.Workflows;
 using AgentMesh.Authentication;
 using AgentMesh.Configuration;
 using Microsoft.AspNetCore.Authentication;
@@ -35,7 +36,9 @@ internal static class Program
             .Services
             .AddSingleton(sp => sp.GetRequiredService<IOptions<ApiKeyAuthenticationConfiguration>>().Value);
 
-        builder.Services.AddSingleton<IWorkflowProgressNotifier, DummyWorkflowProgressNotifier>();
+        builder.Services.AddScoped<CallbackNotifierContext>();
+        builder.Services.AddScoped<IWorkflowProgressNotifier, CallbackWorkflowProgressNotifier>();
+        builder.Services.AddHttpClient(nameof(CallbackWorkflowProgressNotifier));
         builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.SchemeName)
             .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationDefaults.SchemeName, _ => { });
         builder.Services.AddAuthorization();

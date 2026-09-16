@@ -148,6 +148,14 @@ At startup, the API host scans the configured `Plugins/` directory for assemblie
 
 When plugin configuration is invalid, the host stays up and returns RFC7807 responses instead of crashing.
 
+## :satellite: Synchronous vs. Asynchronous Requests
+
+- `POST /api/requests` and `POST /api/pipelines/{pipelineName}/requests` process the request synchronously and return a `requestId` (a generated GUID) alongside the workflow result once the pipeline finishes.
+- `POST /api/requests/async` and `POST /api/pipelines/{pipelineName}/requests/async` return a `requestId` immediately, without waiting for the workflow to finish, and run the workflow in the background.
+- The async request body accepts 5 optional callback URLs: `workflowStartedCallbackUrl`, `workflowStepStartedCallbackUrl`, `workflowStepCompletedCallbackUrl`, `workflowCompletedCallbackUrl`, `workflowErrorCallbackUrl`. If any one is supplied, all 5 must be supplied, otherwise the request is rejected with `400 Bad Request`.
+- When configured, the host performs an HTTP `POST` to the corresponding callback URL for each event, always including the request's `requestId` in the payload. On a successful run, `workflowCompletedCallbackUrl` receives the final workflow result; on failure, `workflowErrorCallbackUrl` receives the error message instead (never both for the same request).
+- Callback delivery is best-effort: failures (network errors, non-2xx responses) are logged and do not affect the workflow execution.
+
 ## :rocket: Getting Started
 
 ### Prerequisites
