@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using AgentMesh.Application.Models.Workflows;
 using AgentMesh.Models;
+using AgentMesh.Models.Api;
 using Microsoft.Extensions.Logging;
 
 namespace AgentMesh.Services
@@ -11,11 +12,20 @@ namespace AgentMesh.Services
     /// </summary>
     internal sealed class CallbackWorkflowProgressNotifier(
         CallbackNotifierContext context,
+        SummarizationCallbackContext summarizationContext,
         IHttpClientFactory httpClientFactory,
         ILogger<CallbackWorkflowProgressNotifier> logger) : IWorkflowProgressNotifier
     {
         public Task NotifyWorkflowStart()
         {
+            if (summarizationContext.IsActive)
+            {
+                return PostIfConfiguredAsync(summarizationContext.WorkflowStartedCallbackUrl, new SummarizationStartedCallbackPayload
+                {
+                    RequestId = summarizationContext.RequestId
+                });
+            }
+
             return PostIfConfiguredAsync(context.WorkflowStartedCallbackUrl, new WorkflowStartedCallbackPayload
             {
                 RequestId = context.RequestId
@@ -27,6 +37,16 @@ namespace AgentMesh.Services
 
         public Task NotifyWorkflowStepStarted(string stepName, IEnumerable<EWDisplayParameterRecord> inputParameters)
         {
+            if (summarizationContext.IsActive)
+            {
+                return PostIfConfiguredAsync(summarizationContext.WorkflowStepStartedCallbackUrl, new SummarizationStepStartedCallbackPayload
+                {
+                    RequestId = summarizationContext.RequestId,
+                    StepName = stepName,
+                    InputParameters = inputParameters
+                });
+            }
+
             return PostIfConfiguredAsync(context.WorkflowStepStartedCallbackUrl, new WorkflowStepStartedCallbackPayload
             {
                 RequestId = context.RequestId,
@@ -37,6 +57,18 @@ namespace AgentMesh.Services
 
         public Task NotifyWorkflowStepCompleted(string stepName, EWStepStatisticsRecord statistics)
         {
+            if (summarizationContext.IsActive)
+            {
+                return PostIfConfiguredAsync(summarizationContext.WorkflowStepCompletedCallbackUrl, new SummarizationStepCompletedCallbackPayload
+                {
+                    RequestId = summarizationContext.RequestId,
+                    StepName = stepName,
+                    Elapsed = statistics.Elapsed,
+                    IsAgentic = statistics.IsAgentic,
+                    ParametersDiff = statistics.ParametersDiff.ToList()
+                });
+            }
+
             return PostIfConfiguredAsync(context.WorkflowStepCompletedCallbackUrl, new WorkflowStepCompletedCallbackPayload
             {
                 RequestId = context.RequestId,

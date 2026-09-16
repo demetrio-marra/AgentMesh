@@ -15,7 +15,9 @@ namespace AgentMesh.Controllers
     [ApiController]
     [Route("api")]
     [Authorize(AuthenticationSchemes = ApiKeyAuthenticationDefaults.SchemeName)]
-    public sealed class RequestsController(StatelessAppInstance appInstance) : ControllerBase
+    public sealed class RequestsController(
+        StatelessAppInstance appInstance,
+        SummarizationAppInstance summarizationAppInstance) : ControllerBase
     {
         /// <summary>
         /// Process a chat request using the default pipeline.
@@ -30,6 +32,7 @@ namespace AgentMesh.Controllers
         /// <response code="400">Multiple pipelines are loaded; explicit pipeline routing via /api/pipelines/{pipelineName}/requests is required.</response>
         /// <response code="401">The API key is missing or invalid.</response>
         /// <response code="503">No pipelines are loaded or a plugin configuration error exists.</response>
+        [Tags("Requests")]
         [HttpPost("requests")]
         [ProducesResponseType(typeof(ProcessRequestApiOutput), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -53,6 +56,7 @@ namespace AgentMesh.Controllers
         /// <response code="401">The API key is missing or invalid.</response>
         /// <response code="404">No pipeline with the specified name was found.</response>
         /// <response code="503">A plugin configuration issue prevents pipeline execution.</response>
+        [Tags("Requests")]
         [HttpPost("pipelines/{pipelineName}/requests")]
         [ProducesResponseType(typeof(ProcessRequestApiOutput), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -75,6 +79,7 @@ namespace AgentMesh.Controllers
         /// <response code="400">The callback URLs were partially supplied (1-4 of 5), or multiple pipelines are loaded and an explicit pipeline name is required.</response>
         /// <response code="401">The API key is missing or invalid.</response>
         /// <response code="503">No pipelines are loaded or a plugin configuration error exists.</response>
+        [Tags("Requests")]
         [HttpPost("requests/async")]
         [ProducesResponseType(typeof(ProcessRequestAsyncApiOutput), StatusCodes.Status202Accepted)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -99,6 +104,7 @@ namespace AgentMesh.Controllers
         /// <response code="401">The API key is missing or invalid.</response>
         /// <response code="404">No pipeline with the specified name was found.</response>
         /// <response code="503">A plugin configuration issue prevents pipeline execution.</response>
+        [Tags("Requests")]
         [HttpPost("pipelines/{pipelineName}/requests/async")]
         [ProducesResponseType(typeof(ProcessRequestAsyncApiOutput), StatusCodes.Status202Accepted)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -108,6 +114,70 @@ namespace AgentMesh.Controllers
         public ActionResult<ProcessRequestAsyncApiOutput> PostNamedAsync([FromRoute] string pipelineName, [FromBody] ProcessRequestAsyncApiInput request)
         {
             return ExecuteRequestAsync(request, pipelineName);
+        }
+
+        /// <summary>
+        /// Summarize conversation messages using the single registered summarization pipeline.
+        /// </summary>
+        [Tags("Summarization")]
+        [HttpPost("summarize")]
+        [ProducesResponseType(typeof(SummarizationApiOutput), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<SummarizationApiOutput>> PostSummarize([FromBody] SummarizationApiInput request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return Ok(await summarizationAppInstance.SummarizeAsync(
+                    request.SummarizationLanguage,
+                    request.Conversation!,
+                    cancellationToken));
+            }
+            catch (PipelineRoutingException ex)
+            {
+                return StatusCode(ex.StatusCode, new ProblemDetails
+                {
+                    Status = ex.StatusCode,
+                    Title = ex.Title,
+                    Detail = ex.Detail
+                });
+            }
+        }
+
+        /// <summary>
+        /// Summarize conversation messages asynchronously using the single registered summarization pipeline.
+        /// </summary>
+        [Tags("Summarization")]
+        [HttpPost("summarize/async")]
+        [ProducesResponseType(typeof(SummarizationAsyncApiOutput), StatusCodes.Status202Accepted)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public ActionResult<SummarizationAsyncApiOutput> PostSummarizeAsync([FromBody] SummarizationAsyncApiInput request)
+        {
+            try
+            {
+                var requestId = summarizationAppInstance.SummarizeInBackground(
+                    request.SummarizationLanguage,
+                    request.Conversation!,
+                    request.WorkflowStartedCallbackUrl,
+                    request.WorkflowStepStartedCallbackUrl,
+                    request.WorkflowStepCompletedCallbackUrl,
+                    request.WorkflowCompletedCallbackUrl,
+                    request.WorkflowErrorCallbackUrl);
+
+                return Accepted(new SummarizationAsyncApiOutput { RequestId = requestId });
+            }
+            catch (PipelineRoutingException ex)
+            {
+                return StatusCode(ex.StatusCode, new ProblemDetails
+                {
+                    Status = ex.StatusCode,
+                    Title = ex.Title,
+                    Detail = ex.Detail
+                });
+            }
         }
 
         private async Task<ActionResult<ProcessRequestApiOutput>> ExecuteRequest(string message, IEnumerable<ContextMessage>? conversation, string? pipelineName, CancellationToken cancellationToken)
