@@ -41,6 +41,10 @@ namespace AgentMesh.Controllers
                 {
                     AgentRole = agentConfig.AgentUniqueRole,
                     Model = agentConfig.ProviderModelName,
+                    Provider = agentConfig.ProviderName,
+                    CostPerMillionInputTokens = agentConfig.LLMClassCostPerMillionInputTokens,
+                    CostPerMillionOutputTokens = agentConfig.LLMClassCostPerMillionOutputTokens,
+                    CostPerHour = agentConfig.LLMClassCostPerHour,
                     Temperature = Convert.ToDouble(agentConfig.Temperature, CultureInfo.InvariantCulture)
                 })
                 .ToList();
