@@ -364,3 +364,4 @@ FodyWeavers.xsd
 /AgentMeshCLI/appsettings.Development.json
 /AgentMesh.Infrastructure.JSSandbox/Sandbox/demrootca.cer
 /AgentMesh.Infrastructure.JSSandbox/Sandbox/rootca.cer
+/AgentMesh.Api/appsettings.Api.Development.json

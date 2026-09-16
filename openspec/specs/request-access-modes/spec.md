@@ -5,11 +5,39 @@ Define how AgentMesh accepts user requests through either interactive console mo
 ## Requirements
 
 ### Requirement: REST request endpoint SHALL invoke the existing request pipeline
-The system SHALL expose an HTTP endpoint that accepts a user message and returns the result produced by `AppInstance.ProcessRequest`.
+The system SHALL expose HTTP endpoints that accept a user message along with caller-provided conversation messages (`IEnumerable<ContextMessage>`) and return the result produced by the dedicated stateless application instance (`StatelessAppInstance`), with route-based chat pipeline selection and without retaining conversation state or executing host-side context summarization. The response SHALL also include a `requestId` (a newly generated GUID for that request), alongside the workflow output, so a `requestId` is present uniformly across synchronous and asynchronous request modes. In addition, the system SHALL expose separate summarization endpoints that accept a summarization language and conversation messages and invoke the sole registered summarization pipeline without pipeline-name selection. Chat and summarization endpoints SHALL use separate specialized input and output contracts.
 
 #### Scenario: API request is processed successfully
-- **WHEN** API mode is active and a client sends a valid request message to the REST endpoint
-- **THEN** the endpoint returns a successful response containing the workflow output generated from that message
+- **WHEN** API mode is active and a client sends a valid request message with optional conversation messages to the REST endpoint
+- **THEN** the endpoint passes the conversation messages to the stateless application instance, executes the resolved pipeline, and returns a successful response containing the workflow output and a generated `requestId`
+
+#### Scenario: Named pipeline request is processed successfully
+- **WHEN** API mode is active and a client sends a valid request message with optional conversation messages to `POST /api/pipelines/{pipelineName}/requests` with a pipeline name that matches a loaded pipeline
+- **THEN** the endpoint executes the matched pipeline via the stateless application instance and returns a successful response containing the workflow output and a generated `requestId`
+
+#### Scenario: Non-interactive mode does not mutate server state or run context summarization
+- **WHEN** an API request is processed in non-interactive mode
+- **THEN** the host does not retain or accumulate conversation messages in server memory and does not execute the host-side summarization pipeline
+
+#### Scenario: Named pipeline is not found
+- **WHEN** API mode is active and a client sends a valid request message to `POST /api/pipelines/{pipelineName}/requests` with a pipeline name that does not match any loaded pipeline
+- **THEN** the endpoint returns `404 Not Found`
+
+#### Scenario: Default route works only with a single loaded pipeline
+- **WHEN** API mode is active and a client sends a valid request message to `POST /api/requests` and exactly one pipeline is loaded
+- **THEN** the endpoint executes the only loaded pipeline and returns a successful response containing the workflow output generated from that message and a generated `requestId`
+
+#### Scenario: Default route requires explicit pipeline name when multiple pipelines exist
+- **WHEN** API mode is active and a client sends a valid request message to `POST /api/requests` and more than one pipeline is loaded
+- **THEN** the endpoint returns `400 Bad Request` with RFC7807 `ProblemDetails` and detail message `pipeline name is required`
+
+#### Scenario: Summarization request is processed successfully
+- **WHEN** API mode is active and a client sends valid summarization language and conversation messages to the summarization endpoint and exactly one summarization pipeline is registered
+- **THEN** the endpoint executes that pipeline without requiring or accepting a pipeline name and returns the dedicated summarization output with a generated request identifier
+
+#### Scenario: Summarization is unavailable or ambiguous
+- **WHEN** API mode is active and zero or multiple summarization pipelines are registered
+- **THEN** the summarization endpoint returns a generic service/configuration error and does not choose a pipeline by name
 
 ### Requirement: API mode SHALL enforce API key authentication
 The REST endpoint SHALL require an API key for access, and the expected key value SHALL be loaded from application configuration.
@@ -34,8 +62,46 @@ The host SHALL support a command-line parameter `--interactive` that controls wh
 - **THEN** `UserConsoleInputService` is not instantiated
 
 ### Requirement: Workflow progress notifier SHALL be mode-specific
-The workflow progress notifier implementation SHALL be selected by runtime mode.
+The workflow progress notifier implementation SHALL be selected by runtime mode. In API mode, the resolved notifier SHALL be scoped to the individual request being processed: for synchronous requests and async requests without callback URLs it SHALL remain a no-op; for async requests that supply all 5 callback URLs it SHALL deliver progress events to those URLs.
 
 #### Scenario: API mode uses dummy notifier
 - **WHEN** the application starts without `--interactive`
 - **THEN** `IWorkflowProgressNotifier` resolves to a no-op implementation that performs no console output
+
+#### Scenario: Synchronous API request uses a no-op notifier
+- **WHEN** the application starts without `--interactive` and a client calls a synchronous request endpoint
+- **THEN** `IWorkflowProgressNotifier` resolves to an implementation that performs no external HTTP calls for that request
+
+#### Scenario: Async API request without callback URLs uses a no-op notifier
+- **WHEN** the application starts without `--interactive` and a client calls the async request endpoint without supplying callback URLs
+- **THEN** `IWorkflowProgressNotifier` resolves to an implementation that performs no external HTTP calls for that request
+
+#### Scenario: Async API request with callback URLs uses a callback-posting notifier
+- **WHEN** the application starts without `--interactive` and a client calls the async request endpoint with all 5 callback URLs supplied
+- **THEN** `IWorkflowProgressNotifier` resolves to an implementation scoped to that request that posts progress events to the supplied callback URLs
+
+### Requirement: Plugin startup and routing failures SHALL be reported as generic RFC7807 errors
+The system SHALL not fail-fast for plugin loading and plugin registry issues at startup; instead, plugin-related service configuration errors SHALL be returned at request time as generic RFC7807 responses that do not expose internal plugin file or assembly details.
+
+#### Scenario: No pipelines loaded
+- **WHEN** API mode is active, plugin startup completed, and no pipeline is available
+- **THEN** the endpoint returns `503 Service Unavailable` with RFC7807 `ProblemDetails` and detail message `No pipelines loaded`
+
+#### Scenario: Plugin configuration issue requires redeploy
+- **WHEN** API mode is active and a plugin-related configuration issue exists that requires startup-time correction (such as invalid plugin registration or duplicate pipeline names)
+- **THEN** the endpoint returns `503 Service Unavailable` with RFC7807 `ProblemDetails` and a generic detail message instructing the caller to redeploy the service after resolving the plugin issue
+
+#### Scenario: Plugin error responses do not reveal internal details
+- **WHEN** API mode is active and a plugin-related configuration issue is returned to the caller
+- **THEN** the response does not include internal plugin file paths, assembly names, or implementation details
+
+### Requirement: API schema SHALL document endpoints, payloads, and string-formatted enum representations in Swagger/OpenAPI
+The system SHALL generate comprehensive OpenAPI/Swagger documentation with descriptive summaries, parameters, response contracts, and string-serialized enum values for conversation message roles (`"User"` and `"Assistant"`).
+
+#### Scenario: OpenAPI documentation contains complete request and response descriptions
+- **WHEN** API mode is active and Swagger/OpenAPI schema is generated
+- **THEN** endpoint routes, parameters, request body fields (including `message` and `conversation`), and response schema fields contain human-readable descriptions
+
+#### Scenario: Conversation message roles are represented as strings in OpenAPI schema
+- **WHEN** API mode is active and the OpenAPI specification is retrieved
+- **THEN** `ContextMessageRole` is documented and serialized as string enum values (`"User"`, `"Assistant"`) rather than integer values

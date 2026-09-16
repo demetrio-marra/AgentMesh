@@ -1,6 +1,4 @@
-﻿using AgentMesh.Application.Configuration;
 using AgentMesh.Application.Contracts;
-
 namespace AgentMesh.Infrastructure.OpenAIClient
 {
     public class OpenAIClientFactory(IEnumerable<AgentFlatConfigurationRecord> agentFlatConfigurationRecords) : 

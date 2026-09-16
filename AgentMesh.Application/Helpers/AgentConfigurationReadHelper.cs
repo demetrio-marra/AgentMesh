@@ -1,0 +1,76 @@
+using AgentMesh.Application.Configuration;
+using AgentMesh.Configuration;
+
+namespace AgentMesh.Helpers
+{
+    public static class AgentConfigurationReadHelper
+    {
+        public static IEnumerable<AgentFlatConfigurationRecord> ReadAgentConfigurations(AppSettingsConfigurationDto appSettings, string basePath, string pluginsPath)
+        {
+            foreach (var (agentName, agentConfiguration) in appSettings.Agents)
+            {
+                if (string.IsNullOrWhiteSpace(agentConfiguration.LLM))
+                {
+                    throw new InvalidOperationException($"Agent configuration '{agentName}' is missing the 'LLM' value.");
+                }
+
+                if (!appSettings.LLMs.TryGetValue(agentConfiguration.LLM, out var llmConfiguration))
+                {
+                    throw new InvalidOperationException($"LLM configuration '{agentConfiguration.LLM}' referenced by agent '{agentName}' was not found.");
+                }
+
+                if (!appSettings.InferenceProviders.TryGetValue(llmConfiguration.Provider, out var providerConfiguration))
+                {
+                    throw new InvalidOperationException($"Inference provider '{llmConfiguration.Provider}' referenced by LLM '{agentConfiguration.LLM}' was not found.");
+                }
+
+                yield return new AgentFlatConfigurationRecord
+                {
+                    AgentUniqueRole = agentName,
+                    ProviderName = llmConfiguration.Provider,
+                    ProviderEndpoint = providerConfiguration.Endpoint,
+                    ProviderApiKey = providerConfiguration.ApiKey,
+                    ProviderModelName = llmConfiguration.Model,
+                    LLMClass = agentConfiguration.LLM,
+                    LLMClassCostPerMillionInputTokens = llmConfiguration.CostPerMillionInputTokens,
+                    LLMClassCostPerMillionOutputTokens = llmConfiguration.CostPerMillionOutputTokens,
+                    LLMClassCostPerHour = llmConfiguration.CostPerHour,
+                    Temperature = agentConfiguration.ModelTemperature,
+                    SystemPrompt = ResolveSystemPrompt(agentConfiguration, basePath, pluginsPath)
+                };
+            }
+        }
+
+        private static string ResolveSystemPrompt(AgentConfigurationDto agentConfiguration, string basePath, string pluginsPath)
+        {
+            if (!string.IsNullOrWhiteSpace(agentConfiguration.SystemPrompt))
+            {
+                return agentConfiguration.SystemPrompt;
+            }
+
+            if (string.IsNullOrWhiteSpace(agentConfiguration.SystemPromptFile))
+            {
+                return string.Empty;
+            }
+
+            var promptFilePath = Path.IsPathRooted(agentConfiguration.SystemPromptFile)
+                ? agentConfiguration.SystemPromptFile
+                : Path.Combine(basePath, agentConfiguration.SystemPromptFile);
+
+            if (!File.Exists(promptFilePath))
+            {
+                var pluginsBasePath = Path.IsPathRooted(pluginsPath)
+                    ? pluginsPath
+                    : Path.Combine(basePath, pluginsPath);
+                promptFilePath = Path.Combine(pluginsBasePath, agentConfiguration.SystemPromptFile);
+
+                if (!File.Exists(promptFilePath))
+                {
+                    return string.Empty;
+                }
+            }
+
+            return File.ReadAllText(promptFilePath);
+        }
+    }
+}

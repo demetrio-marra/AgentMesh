@@ -19,7 +19,7 @@ namespace AgentMesh.Services
         /// Creates an immutable snapshot of the specified parameter values at the current version.
         /// Safe to use as input for parallel step execution.
         /// </summary>
-        /// <param name="parameterTypes">Types of parameters to snapshot (must be concrete EWParameter<T> implementations)</param>
+        /// <param name="parameterTypes">Types of parameters to snapshot (must be concrete EWParameter&lt;T&gt; implementations)</param>
         /// <returns>Snapshot containing current values and version</returns>
         ParametersSnapshot CreateSnapshot(IEnumerable<Type> parameterTypes);
 
