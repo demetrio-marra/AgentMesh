@@ -35,11 +35,9 @@ internal static class Program
             .AddSingleton(sp => sp.GetRequiredService<IOptions<ApiKeyAuthenticationConfiguration>>().Value);
 
         builder.Services.AddScoped<CallbackNotifierContext>();
-        builder.Services.AddScoped<SummarizationCallbackContext>();
         builder.Services.AddScoped<IWorkflowProgressNotifier, CallbackWorkflowProgressNotifier>();
         builder.Services.AddHttpClient(nameof(CallbackWorkflowProgressNotifier));
-        builder.Services.AddSingleton<SummarizationAppInstance>();
-        builder.Services.AddHttpClient(nameof(SummarizationAppInstance));
+        builder.Services.AddHttpClient(nameof(AgentMesh.Application.Services.AppInstance));
         builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.SchemeName)
             .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationDefaults.SchemeName, _ => { });
         builder.Services.AddAuthorization();

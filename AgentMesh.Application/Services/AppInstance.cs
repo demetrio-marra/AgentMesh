@@ -1,80 +1,282 @@
-﻿using AgentMesh.Application.Configuration;
-using AgentMesh.Application.Models.Conversation;
+﻿using System.Net.Http.Json;
+using AgentMesh.Application.Configuration;
 using AgentMesh.Application.Models.Costs;
 using AgentMesh.Application.Models.Workflows;
 using AgentMesh.Application.Services.Pipelines;
-using AgentMesh.Configuration;
 using AgentMesh.Models;
 using AgentMesh.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace AgentMesh.Application.Services
 {
     /// <summary>
-    /// This class manages stateful conversation context and processes user requests for interactive console mode.
+    /// Unified stateless application runner that processes user requests across chat and summarization pipelines.
+    /// It does not persist conversation state or retain host-side context.
+    /// Conversation context is supplied per execution by the caller.
     /// </summary>
     /// <param name="serviceProvider">The root service provider.</param>
-    /// <param name="conversationContext">The stateful conversation context.</param>
     /// <param name="agentsConfigurations">Configurations for registered agents.</param>
     /// <param name="pluginHostState">Startup plugin host validation state.</param>
-    public class AppInstance(IServiceProvider serviceProvider,
-        ConversationContext conversationContext,
+    /// <param name="httpClientFactory">Factory used to POST terminal callbacks once background execution finishes.</param>
+    /// <param name="logger">Logger for background execution failures and callback delivery issues.</param>
+    public class AppInstance(
+        IServiceProvider serviceProvider,
         IEnumerable<AgentFlatConfigurationRecord> agentsConfigurations,
-        PluginHostState pluginHostState)
+        PluginHostState pluginHostState,
+        IHttpClientFactory httpClientFactory,
+        ILogger<AppInstance> logger)
     {
-        public int CountOfMessages { get => conversationContext.Conversation.Count(); }
-        public int CountOfTokensInContext { get => conversationContext.TokensCount; }
-        public decimal CumulatedCost { get; private set; }
-
-        public async Task InitConversation()
+        /// <summary>
+        /// Process a chat request synchronously using the default pipeline.
+        /// </summary>
+        public async Task<WorkflowResult> ProcessRequest(string message, IEnumerable<ContextMessage>? conversation, CancellationToken cancellationToken = default)
         {
-            conversationContext.TokensCount = 0;
-            conversationContext.Conversation = [];
-            CumulatedCost = 0;
-
-            await Task.CompletedTask;
+            return await ProcessRequest(message, conversation, pipelineName: null, cancellationToken);
         }
 
-        public async Task<WorkflowResult> ProcessRequest(string message, CancellationToken cancellationToken)
+        /// <summary>
+        /// Process a chat request synchronously using an optional named pipeline.
+        /// </summary>
+        public async Task<WorkflowResult> ProcessRequest(string message, IEnumerable<ContextMessage>? conversation, string? pipelineName, CancellationToken cancellationToken = default)
         {
-            return await ProcessRequest(message, pipelineName: null, cancellationToken);
+            using var executionScope = serviceProvider.CreateScope();
+            var pipeline = ResolveChatPipeline(executionScope.ServiceProvider, pipelineName);
+            return await ExecuteChatRequestAsync(pipeline, message, conversation, cancellationToken);
         }
 
-        public async Task<WorkflowResult> ProcessRequest(string message, string? pipelineName, CancellationToken cancellationToken)
+        /// <summary>
+        /// Resolves the target chat pipeline and generates a request id synchronously,
+        /// then executes the workflow in the background with progress/terminal callbacks.
+        /// </summary>
+        public Guid ProcessRequestAsync(
+            string message,
+            IEnumerable<ContextMessage>? conversation,
+            string? pipelineName,
+            string? workflowStartedCallbackUrl,
+            string? workflowStepStartedCallbackUrl,
+            string? workflowStepCompletedCallbackUrl,
+            string? workflowCompletedCallbackUrl,
+            string? workflowErrorCallbackUrl)
+        {
+            var executionScope = serviceProvider.CreateScope();
+
+            IChatRequestPipeline pipeline;
+            try
+            {
+                pipeline = ResolveChatPipeline(executionScope.ServiceProvider, pipelineName);
+            }
+            catch
+            {
+                executionScope.Dispose();
+                throw;
+            }
+
+            var requestId = Guid.NewGuid();
+
+            var callbackContext = executionScope.ServiceProvider.GetRequiredService<CallbackNotifierContext>();
+            callbackContext.RequestId = requestId;
+            callbackContext.ExecutionKind = WorkflowExecutionContextKind.Chat;
+            callbackContext.WorkflowStartedCallbackUrl = workflowStartedCallbackUrl;
+            callbackContext.WorkflowStepStartedCallbackUrl = workflowStepStartedCallbackUrl;
+            callbackContext.WorkflowStepCompletedCallbackUrl = workflowStepCompletedCallbackUrl;
+            callbackContext.WorkflowCompletedCallbackUrl = workflowCompletedCallbackUrl;
+            callbackContext.WorkflowErrorCallbackUrl = workflowErrorCallbackUrl;
+
+            _ = RunChatInBackgroundAsync(executionScope, pipeline, requestId, message, conversation, workflowCompletedCallbackUrl, workflowErrorCallbackUrl);
+
+            return requestId;
+        }
+
+        /// <summary>
+        /// Summarize conversation messages synchronously using the single registered summarization pipeline.
+        /// </summary>
+        public async Task<SummarizationResult> SummarizeAsync(
+            string summarizationLanguage,
+            IEnumerable<ContextMessage> conversation,
+            CancellationToken cancellationToken = default)
+        {
+            using var executionScope = serviceProvider.CreateScope();
+            var pipeline = ResolveSummarizationPipeline(executionScope.ServiceProvider);
+            return await ExecuteSummarizationAsync(pipeline, summarizationLanguage, conversation, cancellationToken);
+        }
+
+        /// <summary>
+        /// Resolves the summarization pipeline and generates a request id synchronously,
+        /// then executes summarization in the background with progress/terminal callbacks.
+        /// </summary>
+        public Guid SummarizeAsync(
+            string summarizationLanguage,
+            IEnumerable<ContextMessage> conversation,
+            string? workflowStartedCallbackUrl,
+            string? workflowStepStartedCallbackUrl,
+            string? workflowStepCompletedCallbackUrl,
+            string? workflowCompletedCallbackUrl,
+            string? workflowErrorCallbackUrl)
+        {
+            return SummarizeInBackground(
+                summarizationLanguage,
+                conversation,
+                workflowStartedCallbackUrl,
+                workflowStepStartedCallbackUrl,
+                workflowStepCompletedCallbackUrl,
+                workflowCompletedCallbackUrl,
+                workflowErrorCallbackUrl);
+        }
+
+        /// <summary>
+        /// Alias for background summarization execution.
+        /// </summary>
+        public Guid SummarizeInBackground(
+            string summarizationLanguage,
+            IEnumerable<ContextMessage> conversation,
+            string? workflowStartedCallbackUrl,
+            string? workflowStepStartedCallbackUrl,
+            string? workflowStepCompletedCallbackUrl,
+            string? workflowCompletedCallbackUrl,
+            string? workflowErrorCallbackUrl)
+        {
+            var executionScope = serviceProvider.CreateScope();
+
+            ISummarizationPipeline pipeline;
+            try
+            {
+                pipeline = ResolveSummarizationPipeline(executionScope.ServiceProvider);
+            }
+            catch
+            {
+                executionScope.Dispose();
+                throw;
+            }
+
+            var requestId = Guid.NewGuid();
+
+            var callbackContext = executionScope.ServiceProvider.GetRequiredService<CallbackNotifierContext>();
+            callbackContext.RequestId = requestId;
+            callbackContext.ExecutionKind = WorkflowExecutionContextKind.Summarization;
+            callbackContext.WorkflowStartedCallbackUrl = workflowStartedCallbackUrl;
+            callbackContext.WorkflowStepStartedCallbackUrl = workflowStepStartedCallbackUrl;
+            callbackContext.WorkflowStepCompletedCallbackUrl = workflowStepCompletedCallbackUrl;
+            callbackContext.WorkflowCompletedCallbackUrl = workflowCompletedCallbackUrl;
+            callbackContext.WorkflowErrorCallbackUrl = workflowErrorCallbackUrl;
+
+            _ = RunSummarizationInBackgroundAsync(
+                executionScope,
+                pipeline,
+                requestId,
+                summarizationLanguage,
+                conversation.ToList(),
+                workflowCompletedCallbackUrl,
+                workflowErrorCallbackUrl);
+
+            return requestId;
+        }
+
+        private async Task RunChatInBackgroundAsync(
+            IServiceScope executionScope,
+            IChatRequestPipeline pipeline,
+            Guid requestId,
+            string message,
+            IEnumerable<ContextMessage>? conversation,
+            string? workflowCompletedCallbackUrl,
+            string? workflowErrorCallbackUrl)
+        {
+            try
+            {
+                var result = await ExecuteChatRequestAsync(pipeline, message, conversation, CancellationToken.None);
+
+                if (!string.IsNullOrWhiteSpace(workflowCompletedCallbackUrl))
+                {
+                    await PostCallbackAsync(workflowCompletedCallbackUrl, new WorkflowCompletedCallbackPayload
+                    {
+                        RequestId = requestId,
+                        Result = result
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Background workflow execution failed for request {RequestId}.", requestId);
+
+                if (!string.IsNullOrWhiteSpace(workflowErrorCallbackUrl))
+                {
+                    await PostCallbackAsync(workflowErrorCallbackUrl, new WorkflowErrorCallbackPayload
+                    {
+                        RequestId = requestId,
+                        ErrorMessage = ex.Message
+                    });
+                }
+            }
+            finally
+            {
+                executionScope.Dispose();
+            }
+        }
+
+        private async Task RunSummarizationInBackgroundAsync(
+            IServiceScope executionScope,
+            ISummarizationPipeline pipeline,
+            Guid requestId,
+            string summarizationLanguage,
+            IEnumerable<ContextMessage> conversation,
+            string? workflowCompletedCallbackUrl,
+            string? workflowErrorCallbackUrl)
+        {
+            try
+            {
+                var result = await ExecuteSummarizationAsync(pipeline, summarizationLanguage, conversation, CancellationToken.None);
+
+                if (!string.IsNullOrWhiteSpace(workflowCompletedCallbackUrl))
+                {
+                    await PostCallbackAsync(workflowCompletedCallbackUrl, new SummarizationCompletedCallbackPayload
+                    {
+                        RequestId = requestId,
+                        SummarizedContent = result.SummarizedContent,
+                        SummarizedContentDatetime = result.SummarizedContentDatetime
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Background summarization failed for request {RequestId}.", requestId);
+
+                if (!string.IsNullOrWhiteSpace(workflowErrorCallbackUrl))
+                {
+                    await PostCallbackAsync(workflowErrorCallbackUrl, new SummarizationErrorCallbackPayload
+                    {
+                        RequestId = requestId,
+                        ErrorMessage = ex.Message
+                    });
+                }
+            }
+            finally
+            {
+                executionScope.Dispose();
+            }
+        }
+
+        private async Task<WorkflowResult> ExecuteChatRequestAsync(
+            IChatRequestPipeline pipeline,
+            string message,
+            IEnumerable<ContextMessage>? conversation,
+            CancellationToken cancellationToken)
         {
             var requestDatetime = DateTime.UtcNow;
 
-            var executionScope = serviceProvider.CreateScope();
-
-            var pipeline = ResolvePipeline(executionScope.ServiceProvider, pipelineName);
-            pipeline.SetParameterInitialValues(message, conversationContext.Conversation.ToList(), requestDatetime);
+            var conversationList = conversation?.ToList() ?? [];
+            pipeline.SetParameterInitialValues(message, conversationList, requestDatetime);
 
             var stepsStats = await pipeline.ExecuteAsync(cancellationToken);
             var usageStatistics = stepsStats.ToList();
 
-            var answerDateTime = DateTime.UtcNow;
             var answerText = pipeline.FinalResponse;
-
-            conversationContext.Conversation = conversationContext.Conversation.Append(new()
-            {
-                Role = ContextMessageRole.User,
-                Date = requestDatetime,
-                Text = message,
-            });
-            conversationContext.Conversation = conversationContext.Conversation.Append(new()
-            {
-                Role = ContextMessageRole.Assistant,
-                Date = answerDateTime,
-                Text = answerText,
-            });
 
             var inputTokens = stepsStats.Where(s => s.CountInputTokensAsContextTokens).Sum(s => s.InputTokens ?? 0);
             var outputTokens = stepsStats.Where(s => s.CountOutputTokensAsContextTokens).Sum(s => s.OutputTokens ?? 0);
-
-            conversationContext.TokensCount = inputTokens + outputTokens;
+            var totalTokens = inputTokens + outputTokens;
 
             var agentsCosts = CalculateExecutionCosts(usageStatistics);
-            CumulatedCost += agentsCosts.Sum(c => c.TotalCost);
+            var executionCost = agentsCosts.Sum(c => c.TotalCost);
 
             return new WorkflowResult
             {
@@ -82,73 +284,26 @@ namespace AgentMesh.Application.Services
                 MainPipelineStepsData = usageStatistics,
                 ContextSummarizerHasRun = false,
                 AgentsCostData = agentsCosts,
-                CountOfMessages = conversationContext.Conversation.Count(),
-                CountOfTokens = conversationContext.TokensCount,
+                CountOfMessages = conversationList.Count + 2,
+                CountOfTokens = totalTokens,
                 CountOfMessagesBeforeSummarization = null,
                 CountOfTokensBeforeSummarization = null,
-                CumulatedCost = CumulatedCost
+                CumulatedCost = executionCost
             };
         }
 
-        public async Task<WorkflowResult> SummarizeConversation(CancellationToken cancellationToken)
+        private async Task<SummarizationResult> ExecuteSummarizationAsync(
+            ISummarizationPipeline pipeline,
+            string summarizationLanguage,
+            IEnumerable<ContextMessage> conversation,
+            CancellationToken cancellationToken)
         {
-            var countOfMessagesBeforeSummarization = conversationContext.Conversation.Count();
-            var countOfTokensBeforeSummarization = conversationContext.TokensCount;
-            using var executionScope = serviceProvider.CreateScope();
-            var conversationSummarizationSettings = executionScope.ServiceProvider.GetService<IConversationSummarizationSettings>()
-                ?? throw new InvalidOperationException("The loaded plugin must provide IConversationSummarizationSettings to use /summarize.");
-            var summarizationPipeline = executionScope.ServiceProvider.GetService<ISummarizationPipeline>()
-                ?? throw new InvalidOperationException("The loaded plugin must provide ISummarizationPipeline to use /summarize.");
-            var countOfMessagesToPreserve = Math.Min(countOfMessagesBeforeSummarization, conversationSummarizationSettings.NumMessageToPreseve);
-            var countOfMessagesToIncludeInSummarization = countOfMessagesBeforeSummarization - countOfMessagesToPreserve;
-
-            if (countOfMessagesToIncludeInSummarization <= 0)
-            {
-                return new WorkflowResult
-                {
-                    ContextSummarizerHasRun = false,
-                    CountOfMessages = countOfMessagesBeforeSummarization,
-                    CountOfTokens = countOfTokensBeforeSummarization,
-                    CumulatedCost = CumulatedCost
-                };
-            }
-
-            var requestDatetime = DateTime.UtcNow;
-            var messagesToSummarize = conversationContext.Conversation.Take(countOfMessagesToIncludeInSummarization).ToList();
-            summarizationPipeline.SetParameterInitialValues(conversationSummarizationSettings.SummarizeLanguage, messagesToSummarize, requestDatetime);
-
-            var stepsStats = (await summarizationPipeline.ExecuteAsync(cancellationToken)).ToList();
-            var summaryMessage = new ContextMessage
-            {
-                Role = ContextMessageRole.Assistant,
-                Date = summarizationPipeline.SummarizedContentDatetime,
-                Text = summarizationPipeline.SummarizedContent
-            };
-
-            conversationContext.Conversation = conversationContext.Conversation
-                .Skip(countOfMessagesToIncludeInSummarization)
-                .Prepend(summaryMessage)
-                .ToList();
-            conversationContext.TokensCount = 100;
-
-            var agentsCosts = CalculateExecutionCosts(stepsStats);
-            CumulatedCost += agentsCosts.Sum(cost => cost.TotalCost);
-
-            return new WorkflowResult
-            {
-                Message = summarizationPipeline.SummarizedContent,
-                MainPipelineStepsData = stepsStats,
-                ContextSummarizerHasRun = true,
-                AgentsCostData = agentsCosts,
-                CountOfMessages = conversationContext.Conversation.Count(),
-                CountOfTokens = conversationContext.TokensCount,
-                CountOfMessagesBeforeSummarization = countOfMessagesBeforeSummarization,
-                CountOfTokensBeforeSummarization = countOfTokensBeforeSummarization,
-                CumulatedCost = CumulatedCost
-            };
+            pipeline.SetParameterInitialValues(summarizationLanguage, conversation, DateTime.UtcNow);
+            await pipeline.ExecuteAsync(cancellationToken);
+            return new SummarizationResult(pipeline.SummarizedContent, pipeline.SummarizedContentDatetime);
         }
 
-        private IChatRequestPipeline ResolvePipeline(IServiceProvider scopedServiceProvider, string? pipelineName)
+        private IChatRequestPipeline ResolveChatPipeline(IServiceProvider scopedServiceProvider, string? pipelineName)
         {
             var pipelines = scopedServiceProvider.GetServices<IChatRequestPipeline>().ToList();
 
@@ -193,6 +348,39 @@ namespace AgentMesh.Application.Services
             return match;
         }
 
+        private ISummarizationPipeline ResolveSummarizationPipeline(IServiceProvider scopedServiceProvider)
+        {
+            if (pluginHostState.HasConfigurationIssues)
+            {
+                throw PipelineRoutingException.PluginConfigurationInvalid();
+            }
+
+            var pipelines = scopedServiceProvider.GetServices<ISummarizationPipeline>().ToList();
+            return pipelines.Count switch
+            {
+                0 => throw PipelineRoutingException.NoPipelinesLoaded(),
+                1 => pipelines[0],
+                _ => throw PipelineRoutingException.PluginConfigurationInvalid()
+            };
+        }
+
+        private async Task PostCallbackAsync<TPayload>(string callbackUrl, TPayload payload)
+        {
+            try
+            {
+                var httpClient = httpClientFactory.CreateClient(nameof(AppInstance));
+                using var response = await httpClient.PostAsJsonAsync(callbackUrl, payload);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    logger.LogWarning("Callback POST to {CallbackUrl} returned status {StatusCode}.", callbackUrl, (int)response.StatusCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Callback POST to {CallbackUrl} failed.", callbackUrl);
+            }
+        }
 
         private List<AgentExecutionCost> CalculateExecutionCosts(IEnumerable<EWStepStatisticsRecord> stepStatistics)
         {

@@ -1,7 +1,6 @@
 using System.Net.Http.Json;
 using AgentMesh.Application.Models.Workflows;
 using AgentMesh.Models;
-using AgentMesh.Models.Api;
 using Microsoft.Extensions.Logging;
 
 namespace AgentMesh.Services
@@ -12,17 +11,16 @@ namespace AgentMesh.Services
     /// </summary>
     internal sealed class CallbackWorkflowProgressNotifier(
         CallbackNotifierContext context,
-        SummarizationCallbackContext summarizationContext,
         IHttpClientFactory httpClientFactory,
         ILogger<CallbackWorkflowProgressNotifier> logger) : IWorkflowProgressNotifier
     {
         public Task NotifyWorkflowStart()
         {
-            if (summarizationContext.IsActive)
+            if (context.ExecutionKind == WorkflowExecutionContextKind.Summarization)
             {
-                return PostIfConfiguredAsync(summarizationContext.WorkflowStartedCallbackUrl, new SummarizationStartedCallbackPayload
+                return PostIfConfiguredAsync(context.WorkflowStartedCallbackUrl, new SummarizationStartedCallbackPayload
                 {
-                    RequestId = summarizationContext.RequestId
+                    RequestId = context.RequestId
                 });
             }
 
@@ -32,16 +30,16 @@ namespace AgentMesh.Services
             });
         }
 
-        // The final workflow result/error is not known here; StatelessAppInstance posts workflowCompleted/workflowError itself once the pipeline finishes.
+        // The final workflow result/error is not known here; AppInstance posts workflowCompleted/workflowError itself once the pipeline finishes.
         public Task NotifyWorkflowEnd() => Task.CompletedTask;
 
         public Task NotifyWorkflowStepStarted(string stepName, IEnumerable<EWDisplayParameterRecord> inputParameters)
         {
-            if (summarizationContext.IsActive)
+            if (context.ExecutionKind == WorkflowExecutionContextKind.Summarization)
             {
-                return PostIfConfiguredAsync(summarizationContext.WorkflowStepStartedCallbackUrl, new SummarizationStepStartedCallbackPayload
+                return PostIfConfiguredAsync(context.WorkflowStepStartedCallbackUrl, new SummarizationStepStartedCallbackPayload
                 {
-                    RequestId = summarizationContext.RequestId,
+                    RequestId = context.RequestId,
                     StepName = stepName,
                     InputParameters = inputParameters
                 });
@@ -57,11 +55,11 @@ namespace AgentMesh.Services
 
         public Task NotifyWorkflowStepCompleted(string stepName, EWStepStatisticsRecord statistics)
         {
-            if (summarizationContext.IsActive)
+            if (context.ExecutionKind == WorkflowExecutionContextKind.Summarization)
             {
-                return PostIfConfiguredAsync(summarizationContext.WorkflowStepCompletedCallbackUrl, new SummarizationStepCompletedCallbackPayload
+                return PostIfConfiguredAsync(context.WorkflowStepCompletedCallbackUrl, new SummarizationStepCompletedCallbackPayload
                 {
-                    RequestId = summarizationContext.RequestId,
+                    RequestId = context.RequestId,
                     StepName = stepName,
                     Elapsed = statistics.Elapsed,
                     IsAgentic = statistics.IsAgentic,

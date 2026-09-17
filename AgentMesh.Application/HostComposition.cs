@@ -78,9 +78,7 @@ public static class AgentMeshRuntime
         services.AddSingleton<JSSandboxExecutor>();
         services.AddSingleton<IJSSandbox, SESJSSandboxClient>();
         services.AddOptions<UserConfiguration>().Bind(configuration.GetSection(UserConfiguration.SectionName)).Services.AddSingleton(serviceProvider => serviceProvider.GetRequiredService<IOptions<UserConfiguration>>().Value);
-        services.AddSingleton<ConversationContext>();
         services.AddSingleton<AppInstance>();
-        services.AddSingleton<StatelessAppInstance>();
         services.AddSingleton<PipelineRegistryInitializer>();
         services.AddHostedService<PipelineRegistryInitializerHostedService>();
     }
