@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
+using AgentMesh.Application;
 using AgentMesh.Application.Models.Workflows;
 using AgentMesh.Authentication;
 using AgentMesh.Configuration;
@@ -37,7 +38,6 @@ internal static class Program
         builder.Services.AddScoped<CallbackNotifierContext>();
         builder.Services.AddScoped<IWorkflowProgressNotifier, CallbackWorkflowProgressNotifier>();
         builder.Services.AddHttpClient(nameof(CallbackWorkflowProgressNotifier));
-        builder.Services.AddHttpClient(nameof(AgentMesh.Application.Services.AppInstance));
         builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.SchemeName)
             .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationDefaults.SchemeName, _ => { });
         builder.Services.AddAuthorization();

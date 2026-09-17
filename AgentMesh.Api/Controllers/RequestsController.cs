@@ -1,10 +1,9 @@
-using AgentMesh.Application.Services;
+using AgentMesh.Api.Models.Api;
 using AgentMesh.Application.Services.Pipelines;
 using AgentMesh.Authentication;
 using AgentMesh.Models;
 using AgentMesh.Models.Api;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgentMesh.Controllers
@@ -16,7 +15,7 @@ namespace AgentMesh.Controllers
     [Route("api")]
     [Authorize(AuthenticationSchemes = ApiKeyAuthenticationDefaults.SchemeName)]
     public sealed class RequestsController(
-        AppInstance appInstance) : ControllerBase
+        IAppInstance appInstance) : ControllerBase
     {
         /// <summary>
         /// Process a chat request using the default pipeline.

@@ -1,8 +1,6 @@
 using AgentMesh.Authentication;
-using AgentMesh.Application.Services;
 using AgentMesh.Models.Api;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgentMesh.Controllers
@@ -14,7 +12,7 @@ namespace AgentMesh.Controllers
     [Route("api")]
     [Authorize(AuthenticationSchemes = ApiKeyAuthenticationDefaults.SchemeName)]
     public sealed class ConfigurationController(
-        AppInstance appInstance) : ControllerBase
+        IAppInstance appInstance) : ControllerBase
     {
         /// <summary>
         /// Retrieve the current sandbox and agent configuration summary.

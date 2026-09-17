@@ -1,6 +1,4 @@
-using AgentMesh.Application.Configuration;
 using AgentMesh.Application.Contracts;
-using AgentMesh.Application.Models.Conversation;
 using AgentMesh.Application.Services;
 using AgentMesh.Application.Services.Executors;
 using AgentMesh.Application.Services.Pipelines;
@@ -12,14 +10,11 @@ using AgentMesh.Infrastructure.LightRag.Configuration;
 using AgentMesh.Infrastructure.LightRag.Services;
 using AgentMesh.Infrastructure.Mem0;
 using AgentMesh.Infrastructure.OpenAIClient;
-using AgentMesh.Models;
-using AgentMesh.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace AgentMesh;
+namespace AgentMesh.Application;
 
 public static class AgentMeshRuntime
 {
@@ -80,6 +75,10 @@ public static class AgentMeshRuntime
         services.AddOptions<UserConfiguration>().Bind(configuration.GetSection(UserConfiguration.SectionName)).Services.AddSingleton(serviceProvider => serviceProvider.GetRequiredService<IOptions<UserConfiguration>>().Value);
         services.AddSingleton<AppInstance>();
         services.AddSingleton<PipelineRegistryInitializer>();
+        services.AddHttpClient(nameof(AppInstance));
+
+        services.AddSingleton<IAppInstance, AppInstance>();
+
         services.AddHostedService<PipelineRegistryInitializerHostedService>();
     }
 }

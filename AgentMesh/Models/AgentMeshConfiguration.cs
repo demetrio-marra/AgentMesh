@@ -1,6 +1,6 @@
-namespace AgentMesh.Application.Models.Configuration;
+namespace AgentMesh.Models;
 
-public sealed class ConfigurationSummary
+public sealed class AgentMeshConfiguration
 {
     public string SandboxServiceUrl { get; init; } = string.Empty;
 

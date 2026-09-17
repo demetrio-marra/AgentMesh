@@ -1,4 +1,4 @@
-namespace AgentMesh.Application.Models.Workflows;
+namespace AgentMesh.Models.Workflows;
 
 /// <summary>
 /// Result produced by executing a summarization pipeline.

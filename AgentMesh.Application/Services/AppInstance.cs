@@ -1,15 +1,10 @@
 ﻿using System.Globalization;
 using System.Net.Http.Json;
-using AgentMesh.Application.Configuration;
-using AgentMesh.Application.Models.Costs;
-using AgentMesh.Application.Models.Configuration;
-using AgentMesh.Application.Models.Workflows;
 using AgentMesh.Application.Services.Pipelines;
 using AgentMesh.Infrastructure.JSSandbox;
-using AgentMesh.Models;
-using AgentMesh.Services;
+using AgentMesh.Models.Costs;
+using AgentMesh.Models.Workflows;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace AgentMesh.Application.Services
 {
@@ -32,9 +27,9 @@ namespace AgentMesh.Application.Services
         UserConfiguration userConfiguration,
         PluginHostState pluginHostState,
         IHttpClientFactory httpClientFactory,
-        ILogger<AppInstance> logger)
+        ILogger<AppInstance> logger) : IAppInstance
     {
-        public ConfigurationSummary GetConfigurationSummary()
+        public AgentMeshConfiguration GetConfigurationSummary()
         {
             var agents = agentsConfigurations
                 .Select(agentConfig => new AgentConfigurationSummary
@@ -49,7 +44,7 @@ namespace AgentMesh.Application.Services
                 })
                 .ToList();
 
-            return new ConfigurationSummary
+            return new AgentMeshConfiguration
             {
                 SandboxServiceUrl = sesJSSandboxConfiguration.SandboxServiceURL,
                 SandboxName = sesJSSandboxConfiguration.SandboxName,
