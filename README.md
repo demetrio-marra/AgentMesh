@@ -117,32 +117,37 @@ Executors are services that run deterministic business logic (static procedures)
 
 | Project | Description |
 |---|---|
-| `AgentMesh` | Core domain ? pipeline, parameter, step, agent, and executor interfaces and models |
-| `AgentMesh.Application` | Implementations of agents, executors, pipelines, and step orchestration; configuration models |
-| `AgentMeshCLI` | Console application entry point and DI composition root |
+| `AgentMesh` | Core framework layer: pipeline, parameter, step, agent, and executor contracts and models |
+| `AgentMesh.Application` | Application orchestration layer: agent implementations, executors, pipelines, and runtime configuration |
+| `AgentMesh.Api` | HTTP integration layer; exposes the runtime over APIs but is not the composition root of the application |
+| `AgentMeshCLI` | Terminal frontend for local/dev usage; a thin UI shell around the same application services |
 | `AgentMesh.Infrastructure.OpenAIClient` | OpenAI-compatible API client with multi-provider support |
 | `AgentMesh.Infrastructure.JSSandbox` | Client for the external [JSCodeSandbox](https://github.com/demetrio-marra/JSCodeSandbox) service |
 | `AgentMesh.Infrastructure.Mem0` | Mem0 agent memory service integration for persistent context |
 | `AgentMesh.Infrastructure.LightRag` | LightRag knowledge graph retrieval engine C# client ([LightRAG](https://github.com/HKUDS/LightRAG)) |
 
+> The composition root belongs to the application host layer, not to the API project itself. The API is one integration surface on top of the framework, while the CLI is intentionally a simple terminal frontend.
+
 ## :package: Framework Packaging
 
-The repository now separates reusable framework surfaces from the deployable host:
+The repository separates reusable framework surfaces from the host/application wiring:
 
-- `AgentMesh.Framework` (from the `AgentMesh` project) contains plugin-facing contracts such as `IChatRequestPipeline`, `IAgentMeshPluginBootstrap`, `IKnowledgeService`, `IRerankerService`, `IJSSandbox`, the parameter/step abstractions, and immutable shared models.
-- `AgentMesh.Framework.Application` (from the `AgentMesh.Application` project) contains reusable orchestration and application services built on top of the core framework package.
-- `AgentMeshCLI` remains the host/composition root and is responsible for API routing, DI wiring, and startup-time plugin loading.
+- `AgentMesh` contains the framework-level contracts and shared models used by plugins and runtime components, such as `IChatRequestPipeline`, `IAgentMeshPluginBootstrap`, `IKnowledgeService`, `IRerankerService`, `IJSSandbox`, the parameter/step abstractions, and immutable shared models.
+- `AgentMesh.Application` contains reusable orchestration and application services built on top of the core framework package.
+- The composition root is not the API project. The application host is responsible for DI composition, startup wiring, and plugin registration; the API and CLI are just different frontends that consume the same application services.
+- `AgentMeshCLI` is a thin terminal frontend, not the system's architectural entry point or composition layer.
 
-Plugin authors should reference the framework package(s), not the host executable project.
+Plugin authors should reference the framework package(s), not a host-specific executable project.
 
 ## :electric_plug: Plugin Hosting
 
-At startup, the API host scans the configured `Plugins/` directory for assemblies and looks for implementations of `IAgentMeshPluginBootstrap`. Each bootstrap explicitly registers the services that the plugin wants to expose, including one or more named `IChatRequestPipeline` implementations.
+At startup, the application host scans the configured `Plugins/` directory for assemblies and looks for implementations of `IAgentMeshPluginBootstrap`. Each bootstrap explicitly registers the services that the plugin wants to expose, including one or more named `IChatRequestPipeline` implementations.
 
 - Plugin loading happens only at startup.
 - Replacing DLLs while the service is running has no effect until restart or redeploy.
 - Pipeline names are matched case-insensitively.
 - `PluginHost:EnableBuiltInChatPipeline` controls whether the built-in chat pipeline is registered alongside plugin pipelines.
+- The HTTP API is just one consumer of the composed application; it does not own the composition layer.
 - The default route `POST /api/requests` is valid only when exactly one pipeline is loaded.
 - The named route `POST /api/pipelines/{pipelineName}/requests` selects a pipeline explicitly.
 
@@ -196,9 +201,21 @@ When plugin configuration is invalid, the host stays up and returns RFC7807 resp
 
    ```bash
    dotnet build
-   cd AgentMeshCLI
-   dotnet run
    ```
+
+   Choose the frontend you want to run:
+
+   ```bash
+   dotnet run --project AgentMeshCLI
+   ```
+
+   or, for the HTTP integration layer:
+
+   ```bash
+   dotnet run --project AgentMesh.Api
+   ```
+
+   The CLI is a terminal frontend; the API is a hosted adapter over the same application composition and services.
 
 ### Packaging
 
