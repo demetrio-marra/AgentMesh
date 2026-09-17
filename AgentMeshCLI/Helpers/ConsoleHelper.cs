@@ -1,5 +1,4 @@
-﻿using AgentMesh.Application.Models.Costs;
-using AgentMesh.Models;
+﻿using AgentMesh.Models;
 
 namespace AgentMesh.Helpers
 {
@@ -95,9 +94,9 @@ namespace AgentMesh.Helpers
                     matchingCost = queue.Dequeue();
                 }
 
-                if (matchingCost.HasValue && matchingCost.Value.IsHourlyCost)
+                if (matchingCost is not null && matchingCost.IsHourlyCost)
                 {
-                    hourlyRows.Add((entry, matchingCost.Value));
+                    hourlyRows.Add((entry, matchingCost));
                 }
                 else
                 {
@@ -143,11 +142,11 @@ namespace AgentMesh.Helpers
                     inputPercentage = totalInputTokens > 0 ? (inputTokens * 100.0 / totalInputTokens).ToString("F2").PadLeft(13) : "0.00".PadLeft(13);
                     outputPercentage = totalOutputTokens > 0 ? (outputTokens * 100.0 / totalOutputTokens).ToString("F2").PadLeft(13) : "0.00".PadLeft(13);
 
-                    if (row.Cost.HasValue)
+                    if (row.Cost is not null)
                     {
-                        inputCostStr = row.Cost.Value.InputCost.ToString("F6").PadLeft(17);
-                        outputCostStr = row.Cost.Value.OutputCost.ToString("F6").PadLeft(17);
-                        totalAgentCostStr = row.Cost.Value.TotalCost.ToString("F6").PadLeft(14);
+                        inputCostStr = row.Cost.InputCost.ToString("F6").PadLeft(17);
+                        outputCostStr = row.Cost.OutputCost.ToString("F6").PadLeft(17);
+                        totalAgentCostStr = row.Cost.TotalCost.ToString("F6").PadLeft(14);
                     }
                 }
 

@@ -20,10 +20,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\AgentMeshCLI\appsettings.json" Link="appsettings.json">
+    <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="..\AgentMeshCLI\appsettings.Development.json" Link="appsettings.Development.json">
+    <None Update="appsettings.Development.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="appsettings.Api.json">

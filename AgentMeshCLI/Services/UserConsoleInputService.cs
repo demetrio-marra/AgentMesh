@@ -1,173 +1,242 @@
-using AgentMesh.Application.Configuration;
-using AgentMesh.Application.Services;
+using AgentMesh.Configuration;
 using AgentMesh.Helpers;
-using AgentMesh.Infrastructure.JSSandbox;
+using AgentMesh.Models;
 using Microsoft.Extensions.Hosting;
-using System.Globalization;
 
-namespace AgentMesh.Services
+namespace AgentMesh.Services;
+
+internal sealed class UserConsoleInputService(
+    AgentMeshApiClient apiClient,
+    ConversationSummarizationConfiguration summarizationConfiguration,
+    PendingRequestRegistry pendingRequests,
+    ConversationState conversationState) : BackgroundService
 {
-    internal class UserConsoleInputService(
-        UserConfiguration userConfiguration,
-        SESJSSandboxConfiguration sesJSSandboxConfiguration,
-        IEnumerable<AgentFlatConfigurationRecord> agentsConfigurations,
-        AppInstance appInstance) : BackgroundService
+    private bool _isFirstRun = true;
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        public async Task Run(CancellationToken cancellationToken)
+        Console.WriteLine("Welcome to AgentMesh! This is a console application that allows you to interact with the AgentMesh system.\n");
+        await PrintConfigurationsAsync(stoppingToken);
+
+        while (!stoppingToken.IsCancellationRequested)
         {
-            bool isFirstRun = true;
+            Console.WriteLine("Enter your question or type /help:");
+            Console.Write("> ");
+            var requestText = Console.ReadLine();
 
-            Console.WriteLine("Welcome to AgentMesh! This is a console application that allows you to interact with the AgentMesh system.\n");
-
-            PrintConfigurations();
-
-            while (!cancellationToken.IsCancellationRequested)
+            if (string.IsNullOrWhiteSpace(requestText))
             {
-                Console.WriteLine("Enter your question or type /help:");
-                Console.Write("> ");
-                var requestText = Console.ReadLine();
+                Console.WriteLine("Please enter a valid question.");
+                continue;
+            }
 
-                if (string.IsNullOrWhiteSpace(requestText))
-                {
-                    Console.WriteLine("Please enter a valid question.");
-                    continue;
-                }
+            if (string.Equals(requestText.Trim(), "/exit", StringComparison.OrdinalIgnoreCase))
+            {
+                break;
+            }
 
-                if (string.Equals(requestText?.Trim(), "/exit", StringComparison.OrdinalIgnoreCase))
-                {
-                    break;
-                }
+            if (string.Equals(requestText.Trim(), "/help", StringComparison.OrdinalIgnoreCase))
+            {
+                PrintHelp();
+                continue;
+            }
 
-                if (string.Equals(requestText?.Trim(), "/help", StringComparison.OrdinalIgnoreCase))
-                {
-                    PrintHelp();
-                    continue;
-                }
+            if (string.Equals(requestText.Trim(), "/new", StringComparison.OrdinalIgnoreCase))
+            {
+                conversationState.Reset();
+                ConsoleHelper.WriteLineWithColor("New conversation initialized.", ConsoleColor.Green);
+                continue;
+            }
 
-                if (string.Equals(requestText?.Trim(), "/new", StringComparison.OrdinalIgnoreCase))
-                {
-                    await appInstance.InitConversation();
-                    ConsoleHelper.WriteLineWithColor("New conversation initialized.", ConsoleColor.Green);
-                    continue;
-                }
+            if (string.Equals(requestText.Trim(), "/summarize", StringComparison.OrdinalIgnoreCase))
+            {
+                await SummarizeConversationAsync(stoppingToken, automatic: false);
+                continue;
+            }
 
-                if (string.Equals(requestText?.Trim(), "/summarize", StringComparison.OrdinalIgnoreCase))
-                {
-                    try
-                    {
-                        var summarizationResult = await appInstance.SummarizeConversation(cancellationToken);
-                        if (summarizationResult.ContextSummarizerHasRun)
-                        {
-                            ConsoleHelper.WriteLineWithColor("Chat conversation has been summarized.", ConsoleColor.Green);
-                            ConsoleHelper.PrintTokenUsageSummary(summarizationResult.MainPipelineStepsData, summarizationResult.AgentsCostData);
-                        }
-                        else
-                        {
-                            ConsoleHelper.WriteLineWithColor("There are not enough messages to summarize.", ConsoleColor.Yellow);
-                        }
-                    }
-                    catch (InvalidOperationException exception)
-                    {
-                        ConsoleHelper.WriteLineWithColor(exception.Message, ConsoleColor.Red);
-                    }
+            if (_isFirstRun)
+            {
+                ConsoleHelper.WriteLineWithColor("You can cancel the current request by pressing Ctrl+C.\n", ConsoleColor.Yellow);
+                _isFirstRun = false;
+            }
 
-                    continue;
-                }
+            await ProcessRequestAsync(requestText, stoppingToken);
+        }
+    }
 
-                if (isFirstRun)
-                {
-                    ConsoleHelper.WriteLineWithColor("You can cancel the current request by pressing Ctrl+C.\n", ConsoleColor.Yellow);
-                    isFirstRun = false;
-                }
+    private async Task ProcessRequestAsync(string message, CancellationToken applicationCancellationToken)
+    {
+        var previousTreatControlCAsInput = Console.TreatControlCAsInput;
+        Console.TreatControlCAsInput = true;
+        using var requestCancellation = CancellationTokenSource.CreateLinkedTokenSource(applicationCancellationToken);
+        var cancelMonitorTask = MonitorRequestCancellationByKeyboardAsync(requestCancellation, applicationCancellationToken);
+        Guid? requestId = null;
+        try
+        {
+            requestId = await apiClient.SubmitChatAsync(message, conversationState.Conversation, requestCancellation.Token);
+            var pendingRequest = pendingRequests.Register(requestId.Value, isSummarization: false);
+            var callbackResult = await pendingRequest.Completion.Task.WaitAsync(requestCancellation.Token);
 
-                var previousTreatControlCAsInput = Console.TreatControlCAsInput;
-                Console.TreatControlCAsInput = true;
+            if (!string.IsNullOrWhiteSpace(callbackResult.ErrorMessage))
+            {
+                ConsoleHelper.WriteLineWithColor(callbackResult.ErrorMessage, ConsoleColor.Red);
+                return;
+            }
 
-                using var requestCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                var cancelMonitorTask = MonitorRequestCancellationByKeyboardAsync(requestCancellationTokenSource, cancellationToken);
+            var result = callbackResult.WorkflowResult ?? throw new InvalidOperationException("The API returned no workflow result.");
+            var requestDate = DateTime.UtcNow;
+            conversationState.Conversation.Add(new ContextMessage { Role = ContextMessageRole.User, Date = requestDate, Text = message });
+            conversationState.Conversation.Add(new ContextMessage { Role = ContextMessageRole.Assistant, Date = DateTime.UtcNow, Text = result.Message });
+            conversationState.TokensCount = result.CountOfTokens;
+            conversationState.CumulatedCost += result.CumulatedCost;
 
-                try
-                {
-                    var executionResult = await appInstance.ProcessRequest(requestText!, requestCancellationTokenSource.Token);
+            ConsoleHelper.WriteLineWithColor("\nResponse for user:", ConsoleColor.Gray);
+            ConsoleHelper.WriteLineWithColor(result.Message, ConsoleColor.Cyan);
+            PrintConversationStatus();
+            ConsoleHelper.PrintTokenUsageSummary(result.MainPipelineStepsData, result.AgentsCostData);
 
-                    ConsoleHelper.WriteLineWithColor("\nResponse for user:", ConsoleColor.Gray);
-                    ConsoleHelper.WriteLineWithColor(executionResult.Message, ConsoleColor.Cyan);
-
-                    ConsoleHelper.WriteLineWithColor($"\n\nConversation status:\nCount of messages {executionResult.CountOfMessages}\nCount of tokens: {executionResult.CountOfTokens}\nCumulated cost: {Math.Round(executionResult.CumulatedCost, 2)} $", ConsoleColor.Gray);
-                    if (executionResult.ContextSummarizerHasRun)
-                    {
-                        ConsoleHelper.WriteLineWithColor($"Chat conversation has been summarized. Count of messages before: {executionResult.CountOfMessagesBeforeSummarization}", ConsoleColor.White);
-
-                    }
-
-                    ConsoleHelper.PrintTokenUsageSummary(executionResult.MainPipelineStepsData,
-                        executionResult.AgentsCostData);
-                }
-                catch (OperationCanceledException) when (requestCancellationTokenSource.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
-                {
-                    ConsoleHelper.WriteLineWithColor("Request canceled.", ConsoleColor.Yellow);
-                }
-                finally
-                {
-                    requestCancellationTokenSource.Cancel();
-                    await cancelMonitorTask;
-                    Console.TreatControlCAsInput = previousTreatControlCAsInput;
-                }
+            if (conversationState.TokensCount > summarizationConfiguration.SummaryTokenThreshold &&
+                conversationState.Conversation.Count > summarizationConfiguration.NumMessageToPreseve)
+            {
+                await SummarizeConversationAsync(requestCancellation.Token, automatic: true);
             }
         }
-
-        private static async Task MonitorRequestCancellationByKeyboardAsync(CancellationTokenSource requestCancellationTokenSource, CancellationToken appCancellationToken)
+        catch (OperationCanceledException) when (requestCancellation.IsCancellationRequested && !applicationCancellationToken.IsCancellationRequested)
         {
-            while (!requestCancellationTokenSource.IsCancellationRequested && !appCancellationToken.IsCancellationRequested)
+            if (requestId.HasValue)
             {
-                if (Console.KeyAvailable)
-                {
-                    var keyInfo = Console.ReadKey(intercept: true);
-                    if (keyInfo.Key == ConsoleKey.C && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control))
-                    {
-                        requestCancellationTokenSource.Cancel();
-                        ConsoleHelper.WriteLineWithColor("\nCurrent request cancellation requested...", ConsoleColor.Yellow);
-                        return;
-                    }
-                }
-
-                try
-                {
-                    await Task.Delay(50, appCancellationToken);
-                }
-                catch (OperationCanceledException)
-                {
-                    return;
-                }
+                pendingRequests.TryAbandon(requestId.Value);
             }
+
+            ConsoleHelper.WriteLineWithColor("Request canceled.", ConsoleColor.Yellow);
+        }
+        catch (Exception exception)
+        {
+            ConsoleHelper.WriteLineWithColor(exception.Message, ConsoleColor.Red);
+        }
+        finally
+        {
+            requestCancellation.Cancel();
+            await cancelMonitorTask;
+            Console.TreatControlCAsInput = previousTreatControlCAsInput;
+        }
+    }
+
+    private async Task SummarizeConversationAsync(CancellationToken cancellationToken, bool automatic)
+    {
+        var countBefore = conversationState.Conversation.Count;
+        var preserveCount = Math.Min(countBefore, summarizationConfiguration.NumMessageToPreseve);
+        var includeCount = countBefore - preserveCount;
+        if (includeCount <= 0)
+        {
+            if (!automatic)
+            {
+                ConsoleHelper.WriteLineWithColor("There are not enough messages to summarize.", ConsoleColor.Yellow);
+            }
+
+            return;
         }
 
-
-        private void PrintConfigurations()
+        Guid? requestId = null;
+        try
         {
-            Console.WriteLine($"Sandbox:\n\tUrl: {sesJSSandboxConfiguration.SandboxServiceURL}\n\tName: {sesJSSandboxConfiguration.SandboxName}\n\tAgentId: {userConfiguration.AgentId}\n");
+            var messagesToSummarize = conversationState.Conversation.Take(includeCount).ToList();
+            requestId = await apiClient.SubmitSummarizationAsync(summarizationConfiguration.SummarizeLanguage, messagesToSummarize, cancellationToken);
+            var pendingRequest = pendingRequests.Register(requestId.Value, isSummarization: true);
+            var callbackResult = await pendingRequest.Completion.Task.WaitAsync(cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(callbackResult.ErrorMessage))
+            {
+                ConsoleHelper.WriteLineWithColor(callbackResult.ErrorMessage, ConsoleColor.Red);
+                return;
+            }
+
+            var summary = callbackResult.SummarizationResult ?? throw new InvalidOperationException("The API returned no summarization result.");
+            var preservedMessages = conversationState.Conversation.Skip(includeCount).ToList();
+            conversationState.Conversation.Clear();
+            conversationState.Conversation.Add(new ContextMessage
+            {
+                Role = ContextMessageRole.Assistant,
+                Date = summary.SummarizedContentDatetime,
+                Text = summary.SummarizedContent
+            });
+            conversationState.Conversation.AddRange(preservedMessages);
+            conversationState.TokensCount = 100;
+            ConsoleHelper.WriteLineWithColor("Chat conversation has been summarized.", ConsoleColor.Green);
+        }
+        catch (OperationCanceledException)
+        {
+            if (requestId.HasValue)
+            {
+                pendingRequests.TryAbandon(requestId.Value);
+            }
+
+            ConsoleHelper.WriteLineWithColor("Summarization canceled.", ConsoleColor.Yellow);
+        }
+        catch (Exception exception)
+        {
+            ConsoleHelper.WriteLineWithColor(exception.Message, ConsoleColor.Red);
+        }
+    }
+
+    private async Task PrintConfigurationsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var configuration = await apiClient.GetConfigurationSummaryAsync(cancellationToken);
+            Console.WriteLine($"Sandbox:\n\tUrl: {configuration.SandboxServiceUrl}\n\tName: {configuration.SandboxName}\n\tAgentId: {configuration.AgentId}\n");
             Console.WriteLine("Agent configurations:");
-            foreach (var agentConfig in agentsConfigurations)
+            foreach (var agent in configuration.Agents)
             {
-                ConsoleHelper.PrintAgentConfiguration(agentConfig.AgentUniqueRole, agentConfig.ProviderModelName, Convert.ToDouble(agentConfig.Temperature, CultureInfo.InvariantCulture));
+                ConsoleHelper.PrintAgentConfiguration(agent.AgentRole, agent.Model, agent.Temperature);
             }
             Console.WriteLine();
         }
-
-        private void PrintHelp()
+        catch (Exception exception)
         {
-            Console.WriteLine("Available commands:");
-            Console.WriteLine("/help - Show this help message");
-            Console.WriteLine("/exit - Exit the application");
-            Console.WriteLine("/new - Initializes a new conversation");
-            Console.WriteLine("/summarize - Summarizes the current conversation");
-            Console.WriteLine("Ctrl+C - Cancel the current request");
-            Console.WriteLine("Any other text will be treated as a question to the AgentMesh system.\n");
+            ConsoleHelper.WriteLineWithColor($"Unable to retrieve API configuration: {exception.Message}", ConsoleColor.Red);
         }
+    }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    private void PrintConversationStatus()
+    {
+        ConsoleHelper.WriteLineWithColor($"\n\nConversation status:\nCount of messages {conversationState.Conversation.Count}\nCount of tokens: {conversationState.TokensCount}\nCumulated cost: {Math.Round(conversationState.CumulatedCost, 2)} $", ConsoleColor.Gray);
+    }
+
+    private static async Task MonitorRequestCancellationByKeyboardAsync(CancellationTokenSource requestCancellation, CancellationToken applicationCancellationToken)
+    {
+        while (!requestCancellation.IsCancellationRequested && !applicationCancellationToken.IsCancellationRequested)
         {
-            await Run(stoppingToken);
+            if (Console.KeyAvailable)
+            {
+                var keyInfo = Console.ReadKey(intercept: true);
+                if (keyInfo.Key == ConsoleKey.C && keyInfo.Modifiers.HasFlag(ConsoleModifiers.Control))
+                {
+                    requestCancellation.Cancel();
+                    ConsoleHelper.WriteLineWithColor("\nCurrent request cancellation requested...", ConsoleColor.Yellow);
+                    return;
+                }
+            }
+
+            try
+            {
+                await Task.Delay(50, applicationCancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
         }
+    }
+
+    private static void PrintHelp()
+    {
+        Console.WriteLine("Available commands:");
+        Console.WriteLine("/help - Show this help message");
+        Console.WriteLine("/exit - Exit the application");
+        Console.WriteLine("/new - Initializes a new conversation");
+        Console.WriteLine("/summarize - Summarizes the current conversation");
+        Console.WriteLine("Ctrl+C - Cancel the current request");
+        Console.WriteLine("Any other text will be treated as a question to the AgentMesh system.\n");
     }
 }
