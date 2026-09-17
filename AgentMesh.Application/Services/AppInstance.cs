@@ -1,8 +1,11 @@
-﻿using System.Net.Http.Json;
+﻿using System.Globalization;
+using System.Net.Http.Json;
 using AgentMesh.Application.Configuration;
 using AgentMesh.Application.Models.Costs;
+using AgentMesh.Application.Models.Configuration;
 using AgentMesh.Application.Models.Workflows;
 using AgentMesh.Application.Services.Pipelines;
+using AgentMesh.Infrastructure.JSSandbox;
 using AgentMesh.Models;
 using AgentMesh.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,16 +20,44 @@ namespace AgentMesh.Application.Services
     /// </summary>
     /// <param name="serviceProvider">The root service provider.</param>
     /// <param name="agentsConfigurations">Configurations for registered agents.</param>
+    /// <param name="sesJSSandboxConfiguration">Configuration for the JavaScript sandbox service.</param>
+    /// <param name="userConfiguration">Configuration for the current user agent.</param>
     /// <param name="pluginHostState">Startup plugin host validation state.</param>
     /// <param name="httpClientFactory">Factory used to POST terminal callbacks once background execution finishes.</param>
     /// <param name="logger">Logger for background execution failures and callback delivery issues.</param>
     public class AppInstance(
         IServiceProvider serviceProvider,
         IEnumerable<AgentFlatConfigurationRecord> agentsConfigurations,
+        SESJSSandboxConfiguration sesJSSandboxConfiguration,
+        UserConfiguration userConfiguration,
         PluginHostState pluginHostState,
         IHttpClientFactory httpClientFactory,
         ILogger<AppInstance> logger)
     {
+        public ConfigurationSummary GetConfigurationSummary()
+        {
+            var agents = agentsConfigurations
+                .Select(agentConfig => new AgentConfigurationSummary
+                {
+                    AgentRole = agentConfig.AgentUniqueRole,
+                    Model = agentConfig.ProviderModelName,
+                    Provider = agentConfig.ProviderName,
+                    CostPerMillionInputTokens = agentConfig.LLMClassCostPerMillionInputTokens,
+                    CostPerMillionOutputTokens = agentConfig.LLMClassCostPerMillionOutputTokens,
+                    CostPerHour = agentConfig.LLMClassCostPerHour,
+                    Temperature = Convert.ToDouble(agentConfig.Temperature, CultureInfo.InvariantCulture)
+                })
+                .ToList();
+
+            return new ConfigurationSummary
+            {
+                SandboxServiceUrl = sesJSSandboxConfiguration.SandboxServiceURL,
+                SandboxName = sesJSSandboxConfiguration.SandboxName,
+                AgentId = userConfiguration.AgentId,
+                Agents = agents
+            };
+        }
+
         /// <summary>
         /// Process a chat request synchronously using the default pipeline.
         /// </summary>
