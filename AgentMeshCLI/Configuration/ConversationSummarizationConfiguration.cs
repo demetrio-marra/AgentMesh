@@ -1,8 +1,6 @@
-using AgentMesh.Configuration;
-
 namespace AgentMesh.Configuration
 {
-    public class ConversationSummarizationConfiguration : IConversationSummarizationSettings
+    public class ConversationSummarizationConfiguration
     {
         public const string SectionName = "ConversationSummarization";
 
