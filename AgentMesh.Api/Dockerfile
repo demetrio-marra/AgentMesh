@@ -1,8 +1,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-COPY . .
+COPY AgentMesh.Api/AgentMesh.Api.csproj ./AgentMesh.Api/
 RUN dotnet restore AgentMesh.Api/AgentMesh.Api.csproj
+
+COPY . .
 RUN dotnet publish AgentMesh.Api/AgentMesh.Api.csproj \
     --configuration Release \
     --no-restore \
