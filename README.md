@@ -119,35 +119,35 @@ Executors are services that run deterministic business logic (static procedures)
 |---|---|
 | `AgentMesh` | Core framework layer: pipeline, parameter, step, agent, and executor contracts and models |
 | `AgentMesh.Application` | Application orchestration layer: agent implementations, executors, pipelines, and runtime configuration |
-| `AgentMesh.Api` | HTTP integration layer; exposes the runtime over APIs but is not the composition root of the application |
-| `AgentMeshCLI` | Terminal frontend for local/dev usage; a thin UI shell around the same application services |
+| `AgentMesh.Api` | Application host and composition layer; configures DI, hosts plugins, and exposes the HTTP API |
+| `AgentMeshCLI` | Terminal frontend for the API; a client interface over `AgentMesh.Api` |
 | `AgentMesh.Infrastructure.OpenAIClient` | OpenAI-compatible API client with multi-provider support |
 | `AgentMesh.Infrastructure.JSSandbox` | Client for the external [JSCodeSandbox](https://github.com/demetrio-marra/JSCodeSandbox) service |
 | `AgentMesh.Infrastructure.Mem0` | Mem0 agent memory service integration for persistent context |
 | `AgentMesh.Infrastructure.LightRag` | LightRag knowledge graph retrieval engine C# client ([LightRAG](https://github.com/HKUDS/LightRAG)) |
 
-> The composition root belongs to the application host layer, not to the API project itself. The API is one integration surface on top of the framework, while the CLI is intentionally a simple terminal frontend.
+> `AgentMesh.Api` is the composition layer and entry point for the framework runtime. `AgentMeshCLI` is strictly a terminal frontend for the API.
 
 ## :package: Framework Packaging
 
-The repository separates reusable framework surfaces from the host/application wiring:
+The repository separates reusable framework surfaces from the deployable host:
 
 - `AgentMesh` contains the framework-level contracts and shared models used by plugins and runtime components, such as `IChatRequestPipeline`, `IAgentMeshPluginBootstrap`, `IKnowledgeService`, `IRerankerService`, `IJSSandbox`, the parameter/step abstractions, and immutable shared models.
 - `AgentMesh.Application` contains reusable orchestration and application services built on top of the core framework package.
-- The composition root is not the API project. The application host is responsible for DI composition, startup wiring, and plugin registration; the API and CLI are just different frontends that consume the same application services.
-- `AgentMeshCLI` is a thin terminal frontend, not the system's architectural entry point or composition layer.
+- `AgentMesh.Api` is the composition layer and host application responsible for DI wiring, configuration binding, startup orchestration, and plugin registration.
+- `AgentMeshCLI` is a terminal frontend client designed to interact with the API.
 
-Plugin authors should reference the framework package(s), not a host-specific executable project.
+Plugin authors should reference the framework package(s), not the host executable project.
 
 ## :electric_plug: Plugin Hosting
 
-At startup, the application host scans the configured `Plugins/` directory for assemblies and looks for implementations of `IAgentMeshPluginBootstrap`. Each bootstrap explicitly registers the services that the plugin wants to expose, including one or more named `IChatRequestPipeline` implementations.
+At startup, the API host (`AgentMesh.Api`) scans the configured `Plugins/` directory for assemblies and looks for implementations of `IAgentMeshPluginBootstrap`. Each bootstrap explicitly registers the services that the plugin wants to expose, including one or more named `IChatRequestPipeline` implementations.
 
 - Plugin loading happens only at startup.
 - Replacing DLLs while the service is running has no effect until restart or redeploy.
 - Pipeline names are matched case-insensitively.
 - `PluginHost:EnableBuiltInChatPipeline` controls whether the built-in chat pipeline is registered alongside plugin pipelines.
-- The HTTP API is just one consumer of the composed application; it does not own the composition layer.
+- `AgentMesh.Api` is the composition layer that loads plugins and maps pipeline endpoints.
 - The default route `POST /api/requests` is valid only when exactly one pipeline is loaded.
 - The named route `POST /api/pipelines/{pipelineName}/requests` selects a pipeline explicitly.
 
@@ -186,7 +186,7 @@ When plugin configuration is invalid, the host stays up and returns RFC7807 resp
 
 3. **Configure `appsettings.json`**
 
-   Edit `AgentMeshCLI/appsettings.json` to set:
+   Edit `AgentMesh.Api/appsettings.json` (the composition host configuration) to set:
    - **LLM providers** ? endpoints and API keys (via environment variables) under `InferenceProviders`
    - **LLMs** ? model names and providers for each tier under `LLMs`
    - **Agent settings** ? per-agent LLM assignment, temperature, and system prompt files under `Agents`
@@ -194,6 +194,8 @@ When plugin configuration is invalid, the host stays up and returns RFC7807 resp
    - **Sandbox** ? URL and sandbox name under `SESJSSandbox`
    - **Agent Memory** ? Mem0 service URL under `AgentMemoryService`
    - **LightRag** ? LightRag proxy configuration under `LightRagKnowledgeService`
+
+   If using the CLI frontend, configure `AgentMeshCLI/appsettings.json` with the API base URL and authentication header/key.
 
 4. **Set environment variables** for API keys as required by your LLM providers.
 
@@ -203,19 +205,19 @@ When plugin configuration is invalid, the host stays up and returns RFC7807 resp
    dotnet build
    ```
 
-   Choose the frontend you want to run:
-
-   ```bash
-   dotnet run --project AgentMeshCLI
-   ```
-
-   or, for the HTTP integration layer:
+   Start the API (host and composition layer):
 
    ```bash
    dotnet run --project AgentMesh.Api
    ```
 
-   The CLI is a terminal frontend; the API is a hosted adapter over the same application composition and services.
+   Optionally, start the CLI (terminal frontend for the API) in a separate terminal:
+
+   ```bash
+   dotnet run --project AgentMeshCLI
+   ```
+
+   `AgentMesh.Api` serves as the composition layer and runtime host, while `AgentMeshCLI` operates downstream as a terminal frontend client.
 
 ### Packaging
 
