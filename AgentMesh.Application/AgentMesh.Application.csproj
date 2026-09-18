@@ -8,7 +8,7 @@
     <NoWarn>$(NoWarn);1591</NoWarn>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>AgentMesh.Framework.Application</PackageId>
-    <Version>1.0.5</Version>
+    <Version>1.0.6</Version>
     <Authors>AgentMesh</Authors>
     <Description>Application-layer AgentMesh components for composing workflows, steps, and agents on top of AgentMesh.Framework.</Description>
     <PackageTags>ai;orchestration;pipeline;framework;application</PackageTags>
@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AgentMesh\AgentMesh.csproj" />
+    <ProjectReference Include="..\AgentMesh.Contracts\AgentMesh.Contracts.csproj" />
     <ProjectReference Include="..\AgentMesh.Infrastructure.Cohere\AgentMesh.Infrastructure.Cohere.csproj" />
     <ProjectReference Include="..\AgentMesh.Infrastructure.JSSandbox\AgentMesh.Infrastructure.JSSandbox.csproj" />
     <ProjectReference Include="..\AgentMesh.Infrastructure.LightRag\AgentMesh.Infrastructure.LightRag.csproj" />

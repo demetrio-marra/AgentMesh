@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AgentMesh\AgentMesh.csproj" />
+    <ProjectReference Include="..\AgentMesh.Contracts\AgentMesh.Contracts.csproj" />
   </ItemGroup>
 
 </Project>
