@@ -22,7 +22,7 @@ The distribution SHALL include a class-library sample plugin that preserves the 
 - **THEN** the host invokes the sample plugin's summarization pipeline for the current in-memory conversation and replaces the summarized messages with its returned summary
 
 #### Scenario: CLI starts without a summarization pipeline
-- **WHEN** the CLI host starts and no loaded plugin provides an `ISummarizationPipeline`
+- **WHEN** the CLI frontend starts and no loaded plugin provides an `ISummarizationPipeline`
 - **THEN** startup fails with an error that identifies the required plugin-provided summarization pipeline
 
 #### Scenario: Reaching the threshold does not summarize automatically
@@ -67,3 +67,10 @@ Chat and summarization pipeline plugins SHALL receive conversation data through 
 #### Scenario: Plugin pipelines run with caller-supplied context
 - **WHEN** a host invokes a loaded chat or summarization pipeline with supplied conversation messages
 - **THEN** the plugin processes those inputs without requiring access to conversation state retained by the host
+
+### Requirement: Plugin documentation SHALL identify the framework package
+Documentation for the default chat pipeline plugin SHALL identify `AgentMesh.Application` as the reusable plugin-facing framework package, with `AgentMesh.Api` as the host that runs deployed custom pipelines.
+
+#### Scenario: Plugin author selects dependencies
+- **WHEN** a plugin author reads the default pipeline plugin documentation
+- **THEN** they can identify the framework package to target and the host responsible for pipeline execution

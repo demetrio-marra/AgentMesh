@@ -89,7 +89,7 @@ The API and console executable projects SHALL build and run without a project re
 - **WHEN** either executable starts with a valid environment configuration
 - **THEN** it loads the shared configuration and prompt assets required by its supported workflows without retrieving them from the other executable's output
 
-### Requirement: Console hosting SHALL be an API frontend
+### Requirement: Console frontend SHALL use the API
 The console entry point SHALL own only interactive input, in-memory conversation state, HTTP transport, callback reception, and console presentation; pipeline execution and runtime service configuration SHALL remain owned by the API entry point.
 
 #### Scenario: Console starts independently of pipeline runtime
@@ -110,3 +110,10 @@ The API SHALL own configuration files containing the shared runtime sections cur
 #### Scenario: API behavior remains unchanged
 - **WHEN** the configuration files are relocated and merged
 - **THEN** existing API routes, authentication behavior, callbacks, and pipeline processing remain unchanged
+
+### Requirement: API and CLI documentation SHALL identify executable roles
+The architecture documentation for this capability SHALL identify `AgentMesh.Api` as the API host and `AgentMeshCLI` as its REST terminal frontend. It SHALL not describe the CLI as a composition root for pipeline runtime services.
+
+#### Scenario: Contributor reviews host responsibilities
+- **WHEN** a contributor reads the API and CLI separation documentation
+- **THEN** they can distinguish API-host responsibilities from REST-terminal responsibilities

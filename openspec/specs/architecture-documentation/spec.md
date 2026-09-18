@@ -12,11 +12,18 @@ The repository SHALL include architecture documentation, tracked through OpenSpe
 - **THEN** they can find a project-level description of AgentMesh architecture and goals
 
 ### Requirement: The architecture documentation SHALL describe layering and responsibilities
-The architecture documentation SHALL describe each project layer and its responsibility boundaries.
+The architecture documentation SHALL describe `AgentMesh` as the basic domain-entity package, `AgentMesh.Contracts` as the infrastructure-service contract package, `AgentMesh.Infrastructure.*` as external-system adapters, `AgentMesh.Application` as the plugin-facing agentic-pipeline framework package, `AgentMesh.Api` as the executable host for custom pipelines, and `AgentMeshCLI` as the REST terminal frontend for the API.
 
 #### Scenario: Layer responsibilities are documented
 - **WHEN** a contributor reads the architecture documentation
-- **THEN** they can identify responsibilities of `AgentMeshCLI`, `AgentMesh.Application`, `AgentMesh`, and `AgentMesh.Infrastructure.*`
+- **THEN** they can identify the responsibility of each of the six projects and project groups
+
+### Requirement: The architecture documentation SHALL distinguish reusable and executable boundaries
+The architecture documentation SHALL distinguish reusable domain, contract, adapter, and framework packages from executable hosts. It SHALL state that custom class-library plugins use `AgentMesh.Application`, `AgentMesh.Api` loads and runs custom pipelines over HTTP, and `AgentMeshCLI` calls the API without hosting pipeline execution.
+
+#### Scenario: Contributor selects an extension boundary
+- **WHEN** a contributor evaluates where to add a domain entity, infrastructure integration, custom pipeline, runtime host behavior, or terminal interaction
+- **THEN** the architecture documentation identifies the responsible project and the relevant package or host boundary
 
 ### Requirement: The architecture documentation SHALL describe runtime request flow
 The architecture documentation SHALL describe the end-to-end runtime flow for user request handling and summarization behavior.

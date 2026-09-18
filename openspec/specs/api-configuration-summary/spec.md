@@ -35,3 +35,10 @@ The CLI SHALL retrieve its startup display data from the authenticated API confi
 #### Scenario: Configuration summary is unavailable
 - **WHEN** the API rejects or cannot serve the configuration summary
 - **THEN** the CLI reports that startup configuration could not be retrieved and does not display locally sourced server configuration
+
+### Requirement: Configuration-summary documentation SHALL identify configuration ownership
+Documentation for the configuration summary SHALL identify `AgentMesh.Api` as the configuration-owning host and `AgentMeshCLI` as the REST client that consumes the sanitized summary.
+
+#### Scenario: Contributor reviews configuration flow
+- **WHEN** a contributor reads configuration-summary behavior
+- **THEN** they can identify the API host as the source and the CLI as the consumer of the summary
