@@ -1,11 +1,6 @@
-using System.Globalization;
-using AgentMesh.Application.Configuration;
 using AgentMesh.Authentication;
-using AgentMesh.Application.Services;
-using AgentMesh.Infrastructure.JSSandbox;
 using AgentMesh.Models.Api;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgentMesh.Controllers
@@ -17,9 +12,7 @@ namespace AgentMesh.Controllers
     [Route("api")]
     [Authorize(AuthenticationSchemes = ApiKeyAuthenticationDefaults.SchemeName)]
     public sealed class ConfigurationController(
-        SESJSSandboxConfiguration sesJSSandboxConfiguration,
-        UserConfiguration userConfiguration,
-        IEnumerable<AgentFlatConfigurationRecord> agentsConfigurations) : ControllerBase
+        IAppInstance appInstance) : ControllerBase
     {
         /// <summary>
         /// Retrieve the current sandbox and agent configuration summary.
@@ -36,24 +29,25 @@ namespace AgentMesh.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public ActionResult<ConfigurationSummaryApiOutput> Get()
         {
-            var agents = agentsConfigurations
-                .Select(agentConfig => new AgentConfigurationSummaryApiOutput
+            var configurationSummary = appInstance.GetConfigurationSummary();
+            var agents = configurationSummary.Agents
+                .Select(agent => new AgentConfigurationSummaryApiOutput
                 {
-                    AgentRole = agentConfig.AgentUniqueRole,
-                    Model = agentConfig.ProviderModelName,
-                    Provider = agentConfig.ProviderName,
-                    CostPerMillionInputTokens = agentConfig.LLMClassCostPerMillionInputTokens,
-                    CostPerMillionOutputTokens = agentConfig.LLMClassCostPerMillionOutputTokens,
-                    CostPerHour = agentConfig.LLMClassCostPerHour,
-                    Temperature = Convert.ToDouble(agentConfig.Temperature, CultureInfo.InvariantCulture)
+                    AgentRole = agent.AgentRole,
+                    Model = agent.Model,
+                    Provider = agent.Provider,
+                    CostPerMillionInputTokens = agent.CostPerMillionInputTokens,
+                    CostPerMillionOutputTokens = agent.CostPerMillionOutputTokens,
+                    CostPerHour = agent.CostPerHour,
+                    Temperature = agent.Temperature
                 })
                 .ToList();
 
             return Ok(new ConfigurationSummaryApiOutput
             {
-                SandboxServiceUrl = sesJSSandboxConfiguration.SandboxServiceURL,
-                SandboxName = sesJSSandboxConfiguration.SandboxName,
-                AgentId = userConfiguration.AgentId,
+                SandboxServiceUrl = configurationSummary.SandboxServiceUrl,
+                SandboxName = configurationSummary.SandboxName,
+                AgentId = configurationSummary.AgentId,
                 Agents = agents
             });
         }

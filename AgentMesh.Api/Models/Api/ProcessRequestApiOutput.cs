@@ -1,6 +1,6 @@
-using AgentMesh.Application.Models.Workflows;
+using AgentMesh.Models.Workflows;
 
-namespace AgentMesh.Models.Api
+namespace AgentMesh.Api.Models.Api
 {
     /// <summary>
     /// Response payload returned by the synchronous request endpoints, carrying the generated request identifier alongside the workflow result.

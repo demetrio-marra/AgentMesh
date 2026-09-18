@@ -1,9 +1,11 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
-using AgentMesh.Application.Models.Workflows;
+using AgentMesh.Api.Services;
 using AgentMesh.Authentication;
 using AgentMesh.Configuration;
+using AgentMesh.Services;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 namespace AgentMesh.Api;
 
@@ -12,12 +14,25 @@ internal static class Program
     private static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-        AgentMeshRuntime.ConfigureConfiguration(builder.Configuration, builder.Environment.EnvironmentName);
+        builder.Configuration.Sources.Clear();
         builder.Configuration
+            .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
             .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
             .AddEnvironmentVariables();
-        AgentMeshRuntime.RegisterCommonServices(builder.Services, builder.Configuration);
+        builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
+
+        using (var startupLoggerFactory = LoggerFactory.Create(loggingBuilder =>
+        {
+            loggingBuilder.AddConfiguration(builder.Configuration.GetSection("Logging"));
+            loggingBuilder.AddConsole();
+        }))
+        {
+            PluginBootstrapLoader.LoadPlugins(
+                builder.Services,
+                builder.Configuration,
+                startupLoggerFactory.CreateLogger("PluginBootstrapLoader"));
+        }
 
         var apiKeyConfiguration = builder.Configuration
             .GetSection(ApiKeyAuthenticationConfiguration.SectionName)
@@ -35,11 +50,8 @@ internal static class Program
             .AddSingleton(sp => sp.GetRequiredService<IOptions<ApiKeyAuthenticationConfiguration>>().Value);
 
         builder.Services.AddScoped<CallbackNotifierContext>();
-        builder.Services.AddScoped<SummarizationCallbackContext>();
         builder.Services.AddScoped<IWorkflowProgressNotifier, CallbackWorkflowProgressNotifier>();
         builder.Services.AddHttpClient(nameof(CallbackWorkflowProgressNotifier));
-        builder.Services.AddSingleton<SummarizationAppInstance>();
-        builder.Services.AddHttpClient(nameof(SummarizationAppInstance));
         builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.SchemeName)
             .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationDefaults.SchemeName, _ => { });
         builder.Services.AddAuthorization();

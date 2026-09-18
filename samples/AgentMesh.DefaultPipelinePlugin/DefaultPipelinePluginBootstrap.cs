@@ -1,17 +1,15 @@
-using AgentMesh.Application.Configuration;
-using AgentMesh.Application.Services.Helpers;
+using AgentMesh.Application;
 using AgentMesh.Application.Services.Pipelines;
-using AgentMesh.Models;
-using AgentMesh.Services;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Configuration;
 
 namespace AgentMesh.DefaultPipelinePlugin;
 
 public sealed class DefaultPipelinePluginBootstrap : IAgentMeshPluginBootstrap
 {
-    public void RegisterServices(IServiceCollection services)
+    public void RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
+        ApplicationRuntime.RegisterCommonServices(services, configuration);
+
         var pluginAssembly = typeof(DefaultPipelinePluginBootstrap).Assembly;
 
         services.AddKeyedSingleton<IEWParameterSerializer, DisplayValuesEWParameterSerializer>("DisplayParametersSerializer");

@@ -1,10 +1,9 @@
-using AgentMesh.Application.Services;
-using AgentMesh.Application.Services.Pipelines;
+using AgentMesh.Api.Models.Api;
 using AgentMesh.Authentication;
+using AgentMesh.Exceptions;
 using AgentMesh.Models;
 using AgentMesh.Models.Api;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AgentMesh.Controllers
@@ -16,8 +15,7 @@ namespace AgentMesh.Controllers
     [Route("api")]
     [Authorize(AuthenticationSchemes = ApiKeyAuthenticationDefaults.SchemeName)]
     public sealed class RequestsController(
-        StatelessAppInstance appInstance,
-        SummarizationAppInstance summarizationAppInstance) : ControllerBase
+        IAppInstance appInstance) : ControllerBase
     {
         /// <summary>
         /// Process a chat request using the default pipeline.
@@ -129,10 +127,17 @@ namespace AgentMesh.Controllers
         {
             try
             {
-                return Ok(await summarizationAppInstance.SummarizeAsync(
+                var result = await appInstance.SummarizeAsync(
                     request.SummarizationLanguage,
                     request.Conversation!,
-                    cancellationToken));
+                    cancellationToken);
+
+                return Ok(new SummarizationApiOutput
+                {
+                    RequestId = Guid.NewGuid(),
+                    SummarizedContent = result.SummarizedContent,
+                    SummarizedContentDatetime = result.SummarizedContentDatetime
+                });
             }
             catch (PipelineRoutingException ex)
             {
@@ -158,7 +163,7 @@ namespace AgentMesh.Controllers
         {
             try
             {
-                var requestId = summarizationAppInstance.SummarizeInBackground(
+                var requestId = appInstance.SummarizeInBackground(
                     request.SummarizationLanguage,
                     request.Conversation!,
                     request.WorkflowStartedCallbackUrl,

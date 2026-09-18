@@ -60,3 +60,10 @@ Building the sample plugin SHALL not automatically copy, publish, or configure i
 #### Scenario: Plugin build does not alter host plugin directories
 - **WHEN** the sample plugin is built
 - **THEN** no build configuration places its artifacts in either host's `bin/Plugins` directory
+
+### Requirement: Pipeline plugins SHALL not depend on host-owned conversation state
+Chat and summarization pipeline plugins SHALL receive conversation data through their existing initialization inputs and SHALL NOT require a host-owned conversation context or a stateful application runner.
+
+#### Scenario: Plugin pipelines run with caller-supplied context
+- **WHEN** a host invokes a loaded chat or summarization pipeline with supplied conversation messages
+- **THEN** the plugin processes those inputs without requiring access to conversation state retained by the host

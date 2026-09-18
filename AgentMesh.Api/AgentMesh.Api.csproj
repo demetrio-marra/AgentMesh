@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AgentMesh.Framework.Application" Version="1.0.8" />
+    <ProjectReference Include="..\AgentMesh\AgentMesh.csproj" />
   </ItemGroup>
 
   <ItemGroup>
