@@ -1,6 +1,6 @@
 using AgentMesh.Api.Models.Api;
-using AgentMesh.Application.Services.Pipelines;
 using AgentMesh.Authentication;
+using AgentMesh.Exceptions;
 using AgentMesh.Models;
 using AgentMesh.Models.Api;
 using Microsoft.AspNetCore.Authorization;

@@ -16,14 +16,8 @@ using Microsoft.Extensions.Options;
 
 namespace AgentMesh.Application;
 
-public static class AgentMeshRuntime
+public static class ApplicationRuntime
 {
-    public static void ConfigureConfiguration(ConfigurationManager configuration, string environmentName)
-    {
-        configuration.Sources.Clear();
-        configuration.SetBasePath(AppContext.BaseDirectory).AddJsonFile("appsettings.json", optional: false, reloadOnChange: true).AddJsonFile($"appsettings.{environmentName}.json", optional: true, reloadOnChange: true).AddEnvironmentVariables();
-    }
-
     public static void RegisterCommonServices(IServiceCollection services, IConfiguration configuration)
     {
         var appSettings = new AppSettingsConfigurationDto();
@@ -40,15 +34,6 @@ public static class AgentMeshRuntime
         services.AddSingleton(pluginHostConfiguration);
         services.AddSingleton(pluginHostState);
         services.AddSingleton<IOpenAIClientFactory, OpenAIClientFactory>();
-
-        using (var startupLoggerFactory = LoggerFactory.Create(loggingBuilder =>
-        {
-            loggingBuilder.AddConfiguration(configuration.GetSection("Logging"));
-            loggingBuilder.AddConsole();
-        }))
-        {
-            new PluginHostBootstrapLoader(pluginHostConfiguration, pluginHostState, startupLoggerFactory.CreateLogger<PluginHostBootstrapLoader>()).LoadPlugins(services);
-        }
 
         services.AddSingleton<IEnumerable<AgentFlatConfigurationRecord>>(AgentConfigurationReadHelper.ReadAgentConfigurations(appSettings, AppContext.BaseDirectory, pluginHostConfiguration.PluginsPath).ToArray());
         services.AddScoped<IParameterStore, ParameterStore>();

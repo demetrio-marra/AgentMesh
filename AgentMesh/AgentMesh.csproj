@@ -8,7 +8,7 @@
     <NoWarn>$(NoWarn);1591</NoWarn>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>AgentMesh.Framework</PackageId>
-    <Version>1.0.2</Version>
+    <Version>1.0.5</Version>
     <Authors>AgentMesh</Authors>
     <Description>Core AgentMesh framework contracts, pipeline abstractions, and immutable models for plugin development.</Description>
     <PackageTags>ai;orchestration;pipeline;plugins;framework</PackageTags>
@@ -33,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
     <PackageReference Include="Polly" Version="8.3.1" />

@@ -1,5 +1,5 @@
 using System.Net.Http.Json;
-using AgentMesh.Application.Models.Workflows;
+using AgentMesh.Api.Models;
 using AgentMesh.Models;
 using Microsoft.Extensions.Logging;
 

@@ -12,9 +12,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AgentMesh.Framework" Version="1.0.2" />
-    <PackageReference Include="AgentMesh.Framework.Application" Version="1.0.12" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AgentMesh\AgentMesh.csproj" />
   </ItemGroup>
 
   <ItemGroup>

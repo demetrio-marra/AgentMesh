@@ -16,6 +16,7 @@ global using AgentMesh.Application.Models.Conversation;
 global using AgentMesh.Application.Models.Workflows;
 global using AgentMesh.Application.Services.Helpers;
 global using AgentMesh.Application.Utils;
+global using AgentMesh.Exceptions;
 global using AgentMesh.Models;
 global using AgentMesh.Services;
 global using AgentMesh.Utils;
