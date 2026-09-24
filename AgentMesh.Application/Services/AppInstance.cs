@@ -1,6 +1,5 @@
 ﻿using System.Globalization;
 using System.Net.Http.Json;
-using AgentMesh.Application.Services.Pipelines;
 using AgentMesh.Infrastructure.JSSandbox;
 using AgentMesh.Models.Costs;
 using AgentMesh.Models.Workflows;
@@ -17,7 +16,6 @@ namespace AgentMesh.Application.Services
     /// <param name="agentsConfigurations">Configurations for registered agents.</param>
     /// <param name="sesJSSandboxConfiguration">Configuration for the JavaScript sandbox service.</param>
     /// <param name="userConfiguration">Configuration for the current user agent.</param>
-    /// <param name="pluginHostState">Startup plugin host validation state.</param>
     /// <param name="httpClientFactory">Factory used to POST terminal callbacks once background execution finishes.</param>
     /// <param name="logger">Logger for background execution failures and callback delivery issues.</param>
     public class AppInstance(
@@ -25,7 +23,6 @@ namespace AgentMesh.Application.Services
         IEnumerable<AgentFlatConfigurationRecord> agentsConfigurations,
         SESJSSandboxConfiguration sesJSSandboxConfiguration,
         UserConfiguration userConfiguration,
-        PluginHostState pluginHostState,
         IHttpClientFactory httpClientFactory,
         ILogger<AppInstance> logger) : IAppInstance
     {
@@ -54,20 +51,12 @@ namespace AgentMesh.Application.Services
         }
 
         /// <summary>
-        /// Process a chat request synchronously using the default pipeline.
+        /// Process a chat request synchronously using the deployment's pipeline.
         /// </summary>
         public async Task<WorkflowResult> ProcessRequest(string message, IEnumerable<ContextMessage>? conversation, CancellationToken cancellationToken = default)
         {
-            return await ProcessRequest(message, conversation, pipelineName: null, cancellationToken);
-        }
-
-        /// <summary>
-        /// Process a chat request synchronously using an optional named pipeline.
-        /// </summary>
-        public async Task<WorkflowResult> ProcessRequest(string message, IEnumerable<ContextMessage>? conversation, string? pipelineName, CancellationToken cancellationToken = default)
-        {
             using var executionScope = serviceProvider.CreateScope();
-            var pipeline = ResolveChatPipeline(executionScope.ServiceProvider, pipelineName);
+            var pipeline = ResolveChatPipeline(executionScope.ServiceProvider);
             return await ExecuteChatRequestAsync(pipeline, message, conversation, cancellationToken);
         }
 
@@ -78,7 +67,6 @@ namespace AgentMesh.Application.Services
         public Guid ProcessRequestAsync(
             string message,
             IEnumerable<ContextMessage>? conversation,
-            string? pipelineName,
             string? workflowStartedCallbackUrl,
             string? workflowStepStartedCallbackUrl,
             string? workflowStepCompletedCallbackUrl,
@@ -90,7 +78,7 @@ namespace AgentMesh.Application.Services
             IChatRequestPipeline pipeline;
             try
             {
-                pipeline = ResolveChatPipeline(executionScope.ServiceProvider, pipelineName);
+                pipeline = ResolveChatPipeline(executionScope.ServiceProvider);
             }
             catch
             {
@@ -329,58 +317,19 @@ namespace AgentMesh.Application.Services
             return new SummarizationResult(pipeline.SummarizedContent, pipeline.SummarizedContentDatetime);
         }
 
-        private IChatRequestPipeline ResolveChatPipeline(IServiceProvider scopedServiceProvider, string? pipelineName)
+        private IChatRequestPipeline ResolveChatPipeline(IServiceProvider scopedServiceProvider)
         {
             var pipelines = scopedServiceProvider.GetServices<IChatRequestPipeline>().ToList();
-
-            var duplicatePipelineNames = pipelines
-                .GroupBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
-                .Where(g => string.IsNullOrWhiteSpace(g.Key) || g.Count() > 1)
-                .Select(g => g.Key)
-                .ToList();
-
-            if (duplicatePipelineNames.Count > 0)
+            return pipelines.Count switch
             {
-                throw PipelineRoutingException.PluginConfigurationInvalid();
-            }
-
-            if (pluginHostState.HasConfigurationIssues)
-            {
-                throw PipelineRoutingException.PluginConfigurationInvalid();
-            }
-
-            if (string.IsNullOrWhiteSpace(pipelineName))
-            {
-                if (pipelines.Count == 0)
-                {
-                    throw PipelineRoutingException.NoPipelinesLoaded();
-                }
-
-                if (pipelines.Count > 1)
-                {
-                    throw PipelineRoutingException.PipelineNameRequired();
-                }
-
-                return pipelines[0];
-            }
-
-            var match = pipelines.FirstOrDefault(p => string.Equals(p.Name, pipelineName, StringComparison.OrdinalIgnoreCase));
-
-            if (match is null)
-            {
-                throw PipelineRoutingException.PipelineNotFound();
-            }
-
-            return match;
+                0 => throw PipelineRoutingException.NoPipelinesLoaded(),
+                1 => pipelines[0],
+                _ => throw PipelineRoutingException.PluginConfigurationInvalid()
+            };
         }
 
         private ISummarizationPipeline ResolveSummarizationPipeline(IServiceProvider scopedServiceProvider)
         {
-            if (pluginHostState.HasConfigurationIssues)
-            {
-                throw PipelineRoutingException.PluginConfigurationInvalid();
-            }
-
             var pipelines = scopedServiceProvider.GetServices<ISummarizationPipeline>().ToList();
             return pipelines.Count switch
             {

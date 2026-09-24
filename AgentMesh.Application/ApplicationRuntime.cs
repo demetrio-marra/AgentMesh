@@ -1,7 +1,6 @@
 using AgentMesh.Application.Contracts;
 using AgentMesh.Application.Services;
 using AgentMesh.Application.Services.Executors;
-using AgentMesh.Application.Services.Pipelines;
 using AgentMesh.Configuration;
 using AgentMesh.Helpers;
 using AgentMesh.Infrastructure.Cohere;
@@ -24,15 +23,12 @@ public static class ApplicationRuntime
         configuration.Bind(appSettings);
         var pluginHostConfiguration = new PluginHostConfiguration();
         configuration.GetSection(PluginHostConfiguration.SectionName).Bind(pluginHostConfiguration);
-        var pluginHostState = new PluginHostState();
-
         services.AddLogging(loggingBuilder =>
         {
             loggingBuilder.AddConfiguration(configuration.GetSection("Logging"));
             loggingBuilder.AddConsole();
         });
         services.AddSingleton(pluginHostConfiguration);
-        services.AddSingleton(pluginHostState);
         services.AddSingleton<IOpenAIClientFactory, OpenAIClientFactory>();
 
         services.AddSingleton<IEnumerable<AgentFlatConfigurationRecord>>(AgentConfigurationReadHelper.ReadAgentConfigurations(appSettings, AppContext.BaseDirectory, pluginHostConfiguration.PluginsPath).ToArray());
@@ -59,11 +55,9 @@ public static class ApplicationRuntime
         services.AddSingleton<IJSSandbox, SESJSSandboxClient>();
         services.AddOptions<UserConfiguration>().Bind(configuration.GetSection(UserConfiguration.SectionName)).Services.AddSingleton(serviceProvider => serviceProvider.GetRequiredService<IOptions<UserConfiguration>>().Value);
         services.AddSingleton<AppInstance>();
-        services.AddSingleton<PipelineRegistryInitializer>();
         services.AddHttpClient(nameof(AppInstance));
 
         services.AddSingleton<IAppInstance, AppInstance>();
 
-        services.AddHostedService<PipelineRegistryInitializerHostedService>();
     }
 }

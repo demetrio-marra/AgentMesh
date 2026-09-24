@@ -1,4 +1,6 @@
 using AgentMesh.Authentication;
+using AgentMesh.Exceptions;
+using AgentMesh.Models;
 using AgentMesh.Models.Api;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,13 +25,29 @@ namespace AgentMesh.Controllers
         /// </remarks>
         /// <response code="200">The configuration summary was successfully retrieved.</response>
         /// <response code="401">The API key is missing or invalid.</response>
+        /// <response code="503">No pipelines are loaded or a plugin configuration error exists.</response>
         [Tags("Configuration")]
         [HttpGet("configuration")]
         [ProducesResponseType(typeof(ConfigurationSummaryApiOutput), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public ActionResult<ConfigurationSummaryApiOutput> Get()
         {
-            var configurationSummary = appInstance.GetConfigurationSummary();
+            AgentMeshConfiguration configurationSummary;
+            try
+            {
+                configurationSummary = appInstance.GetConfigurationSummary();
+            }
+            catch (PipelineRoutingException ex)
+            {
+                return StatusCode(ex.StatusCode, new ProblemDetails
+                {
+                    Status = ex.StatusCode,
+                    Title = ex.Title,
+                    Detail = ex.Detail
+                });
+            }
+
             var agents = configurationSummary.Agents
                 .Select(agent => new AgentConfigurationSummaryApiOutput
                 {

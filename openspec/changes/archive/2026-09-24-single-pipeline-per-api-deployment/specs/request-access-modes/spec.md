@@ -1,8 +1,4 @@
-## Purpose
-
-Define how AgentMesh accepts user requests through either interactive console mode or REST API mode, including secure API access and mode-specific runtime component activation.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: REST request endpoint SHALL invoke the existing request pipeline
 The system SHALL expose only unnamed HTTP chat endpoints that accept a user message along with caller-provided conversation messages (`IEnumerable<ContextMessage>`) and return the result produced by the single stateless application runner using the deployment's sole chat pipeline, without retaining conversation state or executing host-side context summarization. The response SHALL also include a `requestId` (a newly generated GUID for that request), alongside the workflow output, so a `requestId` is present uniformly across synchronous and asynchronous request modes. In addition, the system SHALL expose separate summarization endpoints that accept a summarization language and conversation messages and invoke the sole registered summarization pipeline without pipeline-name selection. Chat and summarization endpoints SHALL use separate specialized input and output contracts.
@@ -18,10 +14,6 @@ The system SHALL expose only unnamed HTTP chat endpoints that accept a user mess
 #### Scenario: Named pipeline request is processed successfully
 - **WHEN** a client needs a particular pipeline and sends a valid request to that pipeline's Kubernetes Service using `POST /api/requests`
 - **THEN** the selected deployment executes its sole pipeline and returns a successful response without an application-level pipeline name
-
-#### Scenario: Non-interactive mode does not mutate server state or run context summarization
-- **WHEN** an API request is processed in non-interactive mode
-- **THEN** the host does not retain or accumulate conversation messages in server memory and does not execute host-side context summarization
 
 #### Scenario: Named pipeline is not found
 - **WHEN** a client sends a request to the removed `/api/pipelines/{pipelineName}/requests` path
@@ -39,54 +31,17 @@ The system SHALL expose only unnamed HTTP chat endpoints that accept a user mess
 - **WHEN** a client sends a request to `/api/pipelines/{pipelineName}/requests` or `/api/pipelines/{pipelineName}/requests/async`
 - **THEN** the API has no matching named-pipeline endpoint
 
+#### Scenario: Non-interactive mode does not mutate server state or run context summarization
+- **WHEN** an API request is processed in non-interactive mode
+- **THEN** the host does not retain or accumulate conversation messages in server memory and does not execute host-side context summarization
+
 #### Scenario: Summarization request is processed successfully
-- **WHEN** API mode is active and a client sends valid summarization language and conversation messages to the summarization endpoint and exactly one summarization pipeline is registered
+- **WHEN** a client sends valid summarization language and conversation messages to the summarization endpoint and exactly one summarization pipeline is registered
 - **THEN** the endpoint executes that pipeline through the single stateless application runner without requiring or accepting a pipeline name and returns the dedicated summarization output with a generated request identifier
 
 #### Scenario: Summarization is unavailable or ambiguous
-- **WHEN** API mode is active and zero or multiple summarization pipelines are registered
-- **THEN** the summarization endpoint returns a generic service/configuration error and does not choose a pipeline by name
-
-### Requirement: API mode SHALL enforce API key authentication
-The REST endpoint SHALL require an API key for access, and the expected key value SHALL be loaded from application configuration.
-
-#### Scenario: Request with valid API key is authorized
-- **WHEN** API mode is active and a request includes the configured API key
-- **THEN** the request is authenticated and processed
-
-#### Scenario: Request without valid API key is rejected
-- **WHEN** API mode is active and a request omits the API key or provides an invalid key
-- **THEN** the request is rejected with an authentication failure response
-
-### Requirement: Runtime mode selection SHALL be controlled by `--interactive`
-The host SHALL support a command-line parameter `--interactive` that controls whether interactive console components or HTTP API components are activated.
-
-#### Scenario: Interactive mode disables API components
-- **WHEN** the application starts with `--interactive`
-- **THEN** controllers and Swagger services/middleware are not instantiated
-
-#### Scenario: API mode disables interactive input service
-- **WHEN** the application starts without `--interactive`
-- **THEN** `UserConsoleInputService` is not instantiated
-
-### Requirement: Workflow progress notifier SHALL be mode-specific
-The workflow progress notifier implementation SHALL be selected by runtime mode. In API mode, the resolved notifier SHALL be scoped to the individual request being processed: for synchronous requests and async requests without callback URLs it SHALL remain a no-op; for async requests that supply all 5 callback URLs it SHALL deliver progress events to those URLs.
-
-#### Scenario: API mode uses dummy notifier
-- **WHEN** the application starts without `--interactive`
-- **THEN** `IWorkflowProgressNotifier` resolves to a no-op implementation that performs no console output
-
-#### Scenario: Synchronous API request uses a no-op notifier
-- **WHEN** the application starts without `--interactive` and a client calls a synchronous request endpoint
-- **THEN** `IWorkflowProgressNotifier` resolves to an implementation that performs no external HTTP calls for that request
-
-#### Scenario: Async API request without callback URLs uses a no-op notifier
-- **WHEN** the application starts without `--interactive` and a client calls the async request endpoint without supplying callback URLs
-- **THEN** `IWorkflowProgressNotifier` resolves to an implementation that performs no external HTTP calls for that request
-
-#### Scenario: Async API request with callback URLs uses a callback-posting notifier
-- **WHEN** the application starts without `--interactive` and a client calls the async request endpoint with all 5 callback URLs supplied
-- **THEN** `IWorkflowProgressNotifier` resolves to an implementation scoped to that request that posts progress events to the supplied callback URLs
+- **WHEN** zero or multiple summarization pipelines are registered
+- **THEN** the summarization endpoint returns a generic service or configuration error and does not choose a pipeline by name
 
 ### Requirement: Plugin startup and routing failures SHALL be reported as generic RFC7807 errors
 The system SHALL not fail fast when no plugin or usable pipeline is found at startup. Plugin loading or registration failures that can be represented safely SHALL be retained as deployment availability state and returned at request time as generic RFC7807 responses that do not expose internal plugin file or assembly details.
@@ -121,10 +76,3 @@ The system SHALL generate comprehensive OpenAPI/Swagger documentation for the un
 #### Scenario: Conversation message roles are represented as strings in OpenAPI schema
 - **WHEN** the OpenAPI specification is retrieved
 - **THEN** `ContextMessageRole` is documented and serialized as string enum values (`"User"`, `"Assistant"`) rather than integer values
-
-### Requirement: Request-access documentation SHALL distinguish host and framework execution
-Documentation for request access modes SHALL identify `AgentMesh.Api` as the REST host that enforces request access and `AgentMesh.Application` as the reusable framework that executes custom agentic pipelines.
-
-#### Scenario: Contributor reviews request processing ownership
-- **WHEN** a contributor reads request access mode behavior
-- **THEN** they can distinguish REST access enforcement from reusable pipeline execution

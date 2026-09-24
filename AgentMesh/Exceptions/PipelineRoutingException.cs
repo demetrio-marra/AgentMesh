@@ -18,13 +18,4 @@ public sealed class PipelineRoutingException(int statusCode, string title, strin
         "Service unavailable",
         "No pipelines loaded");
 
-    public static PipelineRoutingException PipelineNameRequired() => new(
-        400,
-        "Bad request",
-        "pipeline name is required");
-
-    public static PipelineRoutingException PipelineNotFound() => new(
-        404,
-        "Pipeline not found",
-        "The requested pipeline was not found.");
 }
