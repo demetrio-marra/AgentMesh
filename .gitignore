@@ -9,7 +9,6 @@
 *.user
 *.userosscache
 *.sln.docstates
-samples/AgentMesh.DefaultPipelinePlugin/pipelineSettings.Development.json
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
