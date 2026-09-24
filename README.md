@@ -41,7 +41,7 @@ AgentMesh separates reusable framework packages, external-system adapters, and e
 | `AgentMesh.Api` | The executable HTTP host that loads plugins and runs custom agentic pipelines. |
 | `AgentMeshCLI` | The REST terminal frontend that calls `AgentMesh.Api`. |
 
-Custom pipeline plugins reference the reusable framework packages. At runtime, `AgentMesh.Api` loads those plugins and exposes their pipelines over HTTP; `AgentMeshCLI` remains a client of that API and does not host pipeline execution.
+Custom pipeline plugins reference the reusable framework packages. Each `AgentMesh.Api` deployment loads one pipeline plugin and exposes that pipeline over HTTP; multiple pipelines in the same Kubernetes cluster run in separate API workloads and Services. `AgentMeshCLI` remains a client of the selected API Service and does not host pipeline execution.
 
 ### Pipelines
 
@@ -158,22 +158,21 @@ The [`samples/AgentMesh.DefaultPipelinePlugin`](samples/AgentMesh.DefaultPipelin
 
 ## :electric_plug: Plugin Hosting
 
-At startup, the API host (`AgentMesh.Api`) scans the configured `Plugins/` directory for assemblies and looks for implementations of `IAgentMeshPluginBootstrap`. Each bootstrap explicitly registers the services that the plugin wants to expose, including one or more named `IChatRequestPipeline` implementations.
+At startup, the API host (`AgentMesh.Api`) loads one pipeline plugin from the configured `Plugins/` directory and invokes its `IAgentMeshPluginBootstrap`. The bootstrap registers the services that the plugin wants to expose, including the deployment's sole `IChatRequestPipeline` implementation. The official API Docker image does not contain a default pipeline plugin.
 
 - Plugin loading happens only at startup.
-- Replacing DLLs while the service is running has no effect until restart or redeploy.
-- Pipeline names are matched case-insensitively.
-- `PluginHost:EnableBuiltInChatPipeline` controls whether the built-in chat pipeline is registered alongside plugin pipelines.
-- `AgentMesh.Api` is the executable host that loads plugins, runs their pipelines, and maps pipeline endpoints.
-- The default route `POST /api/requests` is valid only when exactly one pipeline is loaded.
-- The named route `POST /api/pipelines/{pipelineName}/requests` selects a pipeline explicitly.
+- The API does not watch the plugin folder. Dropping or replacing DLLs has no effect on running pods.
+- After a plugin is added or replaced, a DevOps engineer must run `kubectl rollout restart deployment/<deployment-name>`; only the replacement pod loads the plugin.
+- `AgentMesh.Api` is the executable host that loads one plugin, runs its pipeline, and exposes unnamed request endpoints.
+- If no plugin is present, the API still starts and returns a generic `503 Service Unavailable` at request time.
+- Multiple pipelines are routed at the Kubernetes Service level, not selected by pipeline name inside the API process.
 
 When plugin configuration is invalid, the host stays up and returns RFC7807 responses instead of crashing.
 
 ## :satellite: Synchronous vs. Asynchronous Requests
 
-- `POST /api/requests` and `POST /api/pipelines/{pipelineName}/requests` process the request synchronously and return a `requestId` (a generated GUID) alongside the workflow result once the pipeline finishes.
-- `POST /api/requests/async` and `POST /api/pipelines/{pipelineName}/requests/async` return a `requestId` immediately, without waiting for the workflow to finish, and run the workflow in the background.
+- `POST /api/requests` processes the request synchronously and returns a `requestId` (a generated GUID) alongside the workflow result once the deployment's pipeline finishes.
+- `POST /api/requests/async` returns a `requestId` immediately, without waiting for the workflow to finish, and runs the deployment's pipeline in the background.
 - The async request body accepts 5 optional callback URLs: `workflowStartedCallbackUrl`, `workflowStepStartedCallbackUrl`, `workflowStepCompletedCallbackUrl`, `workflowCompletedCallbackUrl`, `workflowErrorCallbackUrl`. If any one is supplied, all 5 must be supplied, otherwise the request is rejected with `400 Bad Request`.
 - When configured, the host performs an HTTP `POST` to the corresponding callback URL for each event, always including the request's `requestId` in the payload. On a successful run, `workflowCompletedCallbackUrl` receives the final workflow result; on failure, `workflowErrorCallbackUrl` receives the error message instead (never both for the same request).
 - Callback delivery is best-effort: failures (network errors, non-2xx responses) are logged and do not affect the workflow execution.
@@ -222,7 +221,7 @@ When plugin configuration is invalid, the host stays up and returns RFC7807 resp
    dotnet build
    ```
 
-  Start the API host (which loads plugins and runs custom pipelines):
+  Start the API host (which loads one deployment-specific plugin and runs its pipeline):
 
    ```bash
    dotnet run --project AgentMesh.Api
@@ -247,7 +246,7 @@ dotnet pack AgentMesh.Application/AgentMesh.Application.csproj -c Release
 
 ### Container deployment
 
-Build the API image from the repository root. Supply the API key and other deployment-specific settings through environment variables or mounted configuration; do not put secrets in the image.
+Build the API image from the repository root. The image contains no default pipeline plugin. Supply the API key and other deployment-specific settings through environment variables or mounted configuration; do not put secrets in the image. Mount exactly one pipeline plugin per API deployment.
 
 Docker example:
 
@@ -262,6 +261,66 @@ docker run \
 The API listens on container port `8080` and expects the API key in the `X-Api-Key` request header by default.
 
 Kubernetes example:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentmesh-pipeline-a
+  labels:
+    app: agentmesh-api
+    pipeline: pipeline-a
+spec:
+  selector:
+    matchLabels:
+      app: agentmesh-api
+      pipeline: pipeline-a
+  template:
+    metadata:
+      labels:
+        app: agentmesh-api
+        pipeline: pipeline-a
+    spec:
+      containers:
+        - name: api
+          image: agentmesh-api:latest
+          volumeMounts:
+            - name: plugins
+              mountPath: /app/Plugins
+              readOnly: true
+      volumes:
+        - name: plugins
+          configMap:
+            name: agentmesh-pipeline-a-plugin
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentmesh-pipeline-a
+  labels:
+    app: agentmesh-api
+    pipeline: pipeline-a
+spec:
+  selector:
+    app: agentmesh-api
+    pipeline: pipeline-a
+  ports:
+    - port: 8080
+      targetPort: 8080
+```
+
+Deploy one Deployment and Service pair per pipeline. Use the same pipeline identity label on each workload and Service; upstream Kubernetes-aware routing sends messages requiring that pipeline to the matching Service, then calls `/api/requests` or `/api/requests/async`.
+
+When a plugin is dropped into or replaced in the mounted folder, nothing happens automatically. Restart the deployment explicitly:
+
+```bash
+kubectl rollout restart deployment/agentmesh-pipeline-a
+kubectl rollout status deployment/agentmesh-pipeline-a
+```
+
+For automatic pipeline delivery, create a deployment chain that builds and publishes the plugin, updates the mounted artifact or image, runs `kubectl rollout restart deployment/<deployment-name>`, and verifies `kubectl rollout status` before marking the deployment successful.
+
+The plugin volume portion alone is:
 
 ```yaml
 volumeMounts:

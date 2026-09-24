@@ -48,8 +48,6 @@ namespace AgentMesh.Application.Services.Pipelines
             parameterConfigurations
         ), IChatRequestPipeline
     {
-        public string Name => "default";
-
         public void SetParameterInitialValues(string userLastRequest, IEnumerable<ContextMessage> initialChatHistory, DateTime requestDateTime)
         {
             SetInitialParameters(new Dictionary<Type, object?>

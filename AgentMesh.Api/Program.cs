@@ -28,10 +28,18 @@ internal static class Program
             loggingBuilder.AddConsole();
         }))
         {
-            PluginBootstrapLoader.LoadPlugins(
+            var pluginLoadResult = PluginBootstrapLoader.LoadPlugin(
                 builder.Services,
                 builder.Configuration,
                 startupLoggerFactory.CreateLogger("PluginBootstrapLoader"));
+
+            if (pluginLoadResult != PluginLoadResult.Loaded)
+            {
+                var failure = pluginLoadResult == PluginLoadResult.Missing
+                    ? AgentMesh.Exceptions.PipelineRoutingException.NoPipelinesLoaded()
+                    : AgentMesh.Exceptions.PipelineRoutingException.PluginConfigurationInvalid();
+                builder.Services.AddSingleton<IAppInstance>(new UnavailableAppInstance(failure));
+            }
         }
 
         var apiKeyConfiguration = builder.Configuration
