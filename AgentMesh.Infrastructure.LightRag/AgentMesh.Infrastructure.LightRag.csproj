@@ -7,8 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AgentMesh.Application\AgentMesh.Application.csproj" />
-    <ProjectReference Include="..\AgentMesh\AgentMesh.csproj" />
+    <ProjectReference Include="..\AgentMesh.Contracts\AgentMesh.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

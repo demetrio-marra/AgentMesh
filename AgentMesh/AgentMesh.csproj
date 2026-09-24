@@ -4,25 +4,20 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+    <PackageId>AgentMesh.Framework</PackageId>
+    <Version>1.0.5</Version>
+    <Authors>AgentMesh</Authors>
+    <Description>Core AgentMesh framework contracts, pipeline abstractions, and immutable models for plugin development.</Description>
+    <PackageTags>ai;orchestration;pipeline;plugins;framework</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Application\**" />
-    <Compile Remove="Models\QueryExpander\**" />
-    <Compile Remove="Models\RequirementsCollector\**" />
-    <Compile Remove="Models\Router\**" />
-    <EmbeddedResource Remove="Application\**" />
-    <EmbeddedResource Remove="Models\QueryExpander\**" />
-    <EmbeddedResource Remove="Models\RequirementsCollector\**" />
-    <EmbeddedResource Remove="Models\Router\**" />
-    <None Remove="Application\**" />
-    <None Remove="Models\QueryExpander\**" />
-    <None Remove="Models\RequirementsCollector\**" />
-    <None Remove="Models\Router\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Extensions\" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
+    <PackageReference Include="Polly" Version="8.3.1" />
   </ItemGroup>
 
 </Project>

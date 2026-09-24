@@ -1,16 +1,7 @@
 {
   "profiles": {
-    "WebMode": {
+    "Interactive": {
       "commandName": "Project",
-      "launchBrowser": true,
-      "launchUrl": "swagger",
-      "environmentVariables": {
-        "DOTNET_ENVIRONMENT": "Development"
-      }
-    },
-    "InteractiveMode": {
-      "commandName": "Project",
-      "commandLineArgs": "--interactive",
       "environmentVariables": {
         "DOTNET_ENVIRONMENT": "Development"
       }

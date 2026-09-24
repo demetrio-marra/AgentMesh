@@ -1,0 +1,72 @@
+using AgentMesh.Application.Contracts;
+namespace AgentMesh.Application.Services.Agents
+{
+    public sealed class TechnicalAnalystAgent(
+        IOpenAIClientFactory openAIClientFactory,
+        Resilience resilience,
+        ILogger<TechnicalAnalystAgent> logger,
+        IAgentInputSerializer agentInputSerializer) : AbstractAgent<TechnicalAnalysis>(logger,
+            "TechnicalAnalyst", 
+            openAIClientFactory, 
+            resilience,
+            agentInputSerializer)
+    {
+        private readonly ILogger<TechnicalAnalystAgent> _logger = logger;
+
+
+        protected override IEnumerable<AgentInputParameterConfiguration> GetAgentInputParameterConfiguration()
+        {
+            return [
+                new() { ParameterType = typeof(RequestDateTimeParameter), ParameterTags = [ParameterTags.AgentSystemParameterTag] },
+                new() { ParameterType = typeof(KnowledgeContentForCoderParameter), ParameterTags = [ParameterTags.AgentSystemParameterTag] },
+                ];
+        }
+
+        protected override TechnicalAnalysis ParseStructuredResponse(string rawResponseText)
+        {
+            try
+            {
+                var responseDTO = JsonSerializer.Deserialize<ParsedResponse>(rawResponseText);
+
+                if (responseDTO == null)
+                {
+                    _logger.LogWarning("The model's response could not be deserialized into the expected format. Response text: {ResponseText}", rawResponseText);
+                    throw new BadStructuredResponseException(rawResponseText, "The model's response could not be deserialized into the expected format.");
+                }
+
+                if (responseDTO.RequestRejected && string.IsNullOrWhiteSpace(responseDTO.ReasonOfRejection))
+                {
+                    _logger.LogWarning("The model's response rejected the request without providing reasonOfRejection. Response text: {ResponseText}", rawResponseText);
+                    throw new BadStructuredResponseException(rawResponseText, "The model's response rejected the request without providing reasonOfRejection.");
+                }
+
+                if (!responseDTO.RequestRejected)
+                {
+                    responseDTO.ReasonOfRejection = null;
+                }
+
+                return new TechnicalAnalysis
+                {
+                    RequestRejected = responseDTO.RequestRejected,
+                    RequestRejectionReason = responseDTO.ReasonOfRejection
+                };
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex, "Failed to deserialize the model's response. Response text: {ResponseText}", rawResponseText);
+                throw new BadStructuredResponseException(rawResponseText, "Failed to parse the model's response.", ex);
+            }
+        }
+
+        public class ParsedResponse
+        {
+            [JsonRequired]
+            [JsonPropertyName("requestRejected")]
+            public bool RequestRejected { get; set; }
+
+            [JsonPropertyName("reasonOfRejection")]
+            public string? ReasonOfRejection { get; set; }
+        }
+    }
+}
+

@@ -12,28 +12,43 @@ A flexible, extensible multi-agent AI orchestration framework that executes conf
 
 ## :sparkles: Features
 
-- **Pipeline-based orchestration** – two distinct pipeline types (`IChatRequestPipeline` and `ISummarizationPipeline`) composed of reusable steps, each with its own role.
-- **Parameter-driven architecture** – all meaningful business state is modeled as parameters; parameter classes define metadata/serialization rules, while runtime values are managed in the parameter store.
-- **Step-based processing** – steps are the cornerstone of execution; they bridge parameters and either AI agents (for agentic steps) or static executors (for code steps).
-- **AI agent integration** – specialized agents process data via LLM, each with configurable model, temperature, and system prompt.
-- **Static executors** – complement agents by running deterministic business logic without AI involvement.
-- **Sandboxed code execution** – generated code runs in an isolated JavaScript sandbox ([JSCodeSandbox](https://github.com/demetrio-marra/JSCodeSandbox)), deployed separately for security and isolation.
-- **Conversation summarization** – dedicated summarization pipeline compresses conversation history to stay within token limits.
-- **Agent memory system** – leverages Mem0 for persistent, context-aware agent memory across conversations.
-- **Knowledge base integration** – integrates with LightRAG for accessing knowledge bases and documentation ([LightRAG](https://github.com/HKUDS/LightRAG)).
-- **Multi-provider LLM support** – configure different LLM providers (HuggingFace, Together, Fireworks AI, or any OpenAI-compatible endpoint) per agent.
-- **Per-agent configuration** – each agent has its own LLM model, temperature, and system prompt, all configurable via `appsettings.json`.
-- **Token usage tracking** – tracks input/output token consumption per agent and step for cost monitoring and debugging.
-- **Parameter change auditing** – the library tracks which step changed which parameter for easier troubleshooting and analysis.
+- **Pipeline-based orchestration** ï¿½ two distinct pipeline types (`IChatRequestPipeline` and `ISummarizationPipeline`) composed of reusable steps, each with its own role.
+- **Parameter-driven architecture** ï¿½ all meaningful business state is modeled as parameters; parameter classes define metadata/serialization rules, while runtime values are managed in the parameter store.
+- **Step-based processing** ï¿½ steps are the cornerstone of execution; they bridge parameters and either AI agents (for agentic steps) or static executors (for code steps).
+- **AI agent integration** ï¿½ specialized agents process data via LLM, each with configurable model, temperature, and system prompt.
+- **Static executors** ï¿½ complement agents by running deterministic business logic without AI involvement.
+- **Sandboxed code execution** ï¿½ generated code runs in an isolated JavaScript sandbox ([JSCodeSandbox](https://github.com/demetrio-marra/JSCodeSandbox)), deployed separately for security and isolation.
+- **Conversation summarization** ï¿½ dedicated summarization pipeline compresses conversation history to stay within token limits.
+- **Agent memory system** ï¿½ leverages Mem0 for persistent, context-aware agent memory across conversations.
+- **Knowledge base integration** ï¿½ integrates with LightRAG for accessing knowledge bases and documentation ([LightRAG](https://github.com/HKUDS/LightRAG)).
+- **Multi-provider LLM support** ï¿½ configure different LLM providers (HuggingFace, Together, Fireworks AI, or any OpenAI-compatible endpoint) per agent.
+- **Per-agent configuration** ï¿½ each agent has its own LLM model, temperature, and system prompt, all configurable via `appsettings.json`.
+- **Token usage tracking** ï¿½ tracks input/output token consumption per agent and step for cost monitoring and debugging.
+- **Parameter change auditing** ï¿½ the library tracks which step changed which parameter for easier troubleshooting and analysis.
 
 ## :building_construction: Core Architecture
+
+### Project Boundaries
+
+AgentMesh separates reusable framework packages, external-system adapters, and executable hosts:
+
+| Project | Responsibility |
+|---|---|
+| `AgentMesh` | Basic domain entities and shared pipeline, parameter, step, agent, and executor abstractions. |
+| `AgentMesh.Contracts` | Infrastructure service definitions and shared integration contracts. |
+| `AgentMesh.Infrastructure.*` | Adapters for external systems such as OpenAI-compatible LLMs, Mem0, LightRAG, Cohere, and the JavaScript sandbox. |
+| `AgentMesh.Application` | The reusable agentic-pipeline framework, packaged as `AgentMesh.Framework.Application` for class-library plugins. |
+| `AgentMesh.Api` | The executable HTTP host that loads plugins and runs custom agentic pipelines. |
+| `AgentMeshCLI` | The REST terminal frontend that calls `AgentMesh.Api`. |
+
+Custom pipeline plugins reference the reusable framework packages. At runtime, `AgentMesh.Api` loads those plugins and exposes their pipelines over HTTP; `AgentMeshCLI` remains a client of that API and does not host pipeline execution.
 
 ### Pipelines
 
 Pipelines define the sequence of steps to be executed. Two pipeline types exist:
 
-- **`IChatRequestPipeline`** – Executes upon each user request. Takes a user message as input and produces a final response string.
-- **`ISummarizationPipeline`** – Executes when conversation token count exceeds configured threshold. Compresses chat history into a manageable summary.
+- **`IChatRequestPipeline`** ï¿½ Executes upon each user request. Takes a user message as input and produces a final response string.
+- **`ISummarizationPipeline`** ï¿½ Executes when conversation token count exceeds configured threshold. Compresses chat history into a manageable summary.
 
 Both pipeline types are scoped to their execution context. The only long-lived object is the `ChatContext`, which holds the entire conversation history between user and assistants.
 
@@ -117,13 +132,51 @@ Executors are services that run deterministic business logic (static procedures)
 
 | Project | Description |
 |---|---|
-| `AgentMesh` | Core domain ? pipeline, parameter, step, agent, and executor interfaces and models |
-| `AgentMesh.Application` | Implementations of agents, executors, pipelines, and step orchestration; configuration models |
-| `AgentMeshCLI` | Console application entry point and DI composition root |
-| `AgentMesh.Infrastructure.OpenAIClient` | OpenAI-compatible API client with multi-provider support |
-| `AgentMesh.Infrastructure.JSSandbox` | Client for the external [JSCodeSandbox](https://github.com/demetrio-marra/JSCodeSandbox) service |
-| `AgentMesh.Infrastructure.Mem0` | Mem0 agent memory service integration for persistent context |
-| `AgentMesh.Infrastructure.LightRag` | LightRag knowledge graph retrieval engine C# client ([LightRAG](https://github.com/HKUDS/LightRAG)) |
+| `AgentMesh` | Basic domain entities and shared pipeline abstractions |
+| `AgentMesh.Contracts` | Infrastructure service definitions and shared integration contracts |
+| `AgentMesh.Infrastructure.*` | External-system adapters, including OpenAI-compatible LLMs, [JSCodeSandbox](https://github.com/demetrio-marra/JSCodeSandbox), Mem0, LightRAG, and Cohere |
+| `AgentMesh.Application` | Reusable agentic-pipeline framework for class-library plugins, packaged as `AgentMesh.Framework.Application` |
+| `AgentMesh.Api` | Executable HTTP host that loads plugins and runs custom agentic pipelines |
+| `AgentMeshCLI` | REST terminal frontend for `AgentMesh.Api` |
+
+> Reusable packages provide the domain, contract, adapter, and pipeline framework layers. `AgentMesh.Api` is the deployable runtime host, and `AgentMeshCLI` is strictly its REST terminal frontend.
+
+## :package: Framework Packaging
+
+The repository separates reusable framework surfaces, infrastructure contracts and adapters, and deployable hosts:
+
+- `AgentMesh` provides the basic domain entities and shared abstractions used by framework and integration layers.
+- `AgentMesh.Contracts` defines the infrastructure service contracts used between the framework and external adapters.
+- `AgentMesh.Infrastructure.*` provides the integrations for external systems behind those contracts.
+- `AgentMesh.Application` provides the reusable agentic-pipeline framework and is packaged as `AgentMesh.Framework.Application` for custom class-library plugins.
+- `AgentMesh.Api` is the deployable HTTP host responsible for configuration, plugin loading, API access, and running custom pipelines.
+- `AgentMeshCLI` is the REST terminal frontend that calls the API and manages its local terminal conversation experience.
+
+Plugin authors should reference `AgentMesh.Framework.Application` and its transitive framework dependencies, not the `AgentMesh.Api` host executable.
+
+The [`samples/AgentMesh.DefaultPipelinePlugin`](samples/AgentMesh.DefaultPipelinePlugin) directory contains a ready-to-use plugin DLL implementation based on AgentMesh.Framework.Application NuGet package. Developers should start custom pipelines from it.
+
+## :electric_plug: Plugin Hosting
+
+At startup, the API host (`AgentMesh.Api`) scans the configured `Plugins/` directory for assemblies and looks for implementations of `IAgentMeshPluginBootstrap`. Each bootstrap explicitly registers the services that the plugin wants to expose, including one or more named `IChatRequestPipeline` implementations.
+
+- Plugin loading happens only at startup.
+- Replacing DLLs while the service is running has no effect until restart or redeploy.
+- Pipeline names are matched case-insensitively.
+- `PluginHost:EnableBuiltInChatPipeline` controls whether the built-in chat pipeline is registered alongside plugin pipelines.
+- `AgentMesh.Api` is the executable host that loads plugins, runs their pipelines, and maps pipeline endpoints.
+- The default route `POST /api/requests` is valid only when exactly one pipeline is loaded.
+- The named route `POST /api/pipelines/{pipelineName}/requests` selects a pipeline explicitly.
+
+When plugin configuration is invalid, the host stays up and returns RFC7807 responses instead of crashing.
+
+## :satellite: Synchronous vs. Asynchronous Requests
+
+- `POST /api/requests` and `POST /api/pipelines/{pipelineName}/requests` process the request synchronously and return a `requestId` (a generated GUID) alongside the workflow result once the pipeline finishes.
+- `POST /api/requests/async` and `POST /api/pipelines/{pipelineName}/requests/async` return a `requestId` immediately, without waiting for the workflow to finish, and run the workflow in the background.
+- The async request body accepts 5 optional callback URLs: `workflowStartedCallbackUrl`, `workflowStepStartedCallbackUrl`, `workflowStepCompletedCallbackUrl`, `workflowCompletedCallbackUrl`, `workflowErrorCallbackUrl`. If any one is supplied, all 5 must be supplied, otherwise the request is rejected with `400 Bad Request`.
+- When configured, the host performs an HTTP `POST` to the corresponding callback URL for each event, always including the request's `requestId` in the payload. On a successful run, `workflowCompletedCallbackUrl` receives the final workflow result; on failure, `workflowErrorCallbackUrl` receives the error message instead (never both for the same request).
+- Callback delivery is best-effort: failures (network errors, non-2xx responses) are logged and do not affect the workflow execution.
 
 ## :rocket: Getting Started
 
@@ -150,7 +203,7 @@ Executors are services that run deterministic business logic (static procedures)
 
 3. **Configure `appsettings.json`**
 
-   Edit `AgentMeshCLI/appsettings.json` to set:
+  Edit `AgentMesh.Api/appsettings.json` (the API host configuration) to set:
    - **LLM providers** ? endpoints and API keys (via environment variables) under `InferenceProviders`
    - **LLMs** ? model names and providers for each tier under `LLMs`
    - **Agent settings** ? per-agent LLM assignment, temperature, and system prompt files under `Agents`
@@ -159,15 +212,67 @@ Executors are services that run deterministic business logic (static procedures)
    - **Agent Memory** ? Mem0 service URL under `AgentMemoryService`
    - **LightRag** ? LightRag proxy configuration under `LightRagKnowledgeService`
 
+   If using the CLI frontend, configure `AgentMeshCLI/appsettings.json` with the API base URL and authentication header/key.
+
 4. **Set environment variables** for API keys as required by your LLM providers.
 
 5. **Build and run**
 
    ```bash
    dotnet build
-   cd AgentMeshCLI
-   dotnet run
    ```
+
+  Start the API host (which loads plugins and runs custom pipelines):
+
+   ```bash
+   dotnet run --project AgentMesh.Api
+   ```
+
+   Optionally, start the CLI (terminal frontend for the API) in a separate terminal:
+
+   ```bash
+   dotnet run --project AgentMeshCLI
+   ```
+
+  `AgentMesh.Api` is the runtime host for custom pipelines, while `AgentMeshCLI` operates as its REST terminal frontend.
+
+### Packaging
+
+To produce the reusable framework NuGet artifacts:
+
+```bash
+dotnet pack AgentMesh/AgentMesh.csproj -c Release
+dotnet pack AgentMesh.Application/AgentMesh.Application.csproj -c Release
+```
+
+### Container deployment
+
+Build the API image from the repository root. Supply the API key and other deployment-specific settings through environment variables or mounted configuration; do not put secrets in the image.
+
+Docker example:
+
+```bash
+docker build -f AgentMesh.Api/Dockerfile -t agentmesh-api .
+docker run \
+  -p 8080:8080 \
+  -e ApiAuth__ApiKey=your-api-key \
+  agentmesh-api
+```
+
+The API listens on container port `8080` and expects the API key in the `X-Api-Key` request header by default.
+
+Kubernetes example:
+
+```yaml
+volumeMounts:
+  - name: plugins
+    mountPath: /app/Plugins
+    readOnly: true
+volumes:
+  - name: plugins
+    configMap:
+      name: agentmesh-plugins
+```
 
 ### Configuration Overview
 
