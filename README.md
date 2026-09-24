@@ -160,6 +160,8 @@ The [`samples/AgentMesh.DefaultPipelinePlugin`](samples/AgentMesh.DefaultPipelin
 
 At startup, the API host (`AgentMesh.Api`) loads one pipeline plugin from the configured `Plugins/` directory and invokes its `IAgentMeshPluginBootstrap`. The bootstrap registers the services that the plugin wants to expose, including the deployment's sole `IChatRequestPipeline` implementation. The official API Docker image does not contain a default pipeline plugin.
 
+When deploying the default pipeline plugin, provide its `pipelineSettings.json` file in the API runtime base directory alongside `appsettings.json`. This file contains the pipeline-owned `InferenceProviders`, `LLMs`, `Agents`, and `CodeModeWorkflow` sections. The API loads it optionally after the host settings and before environment variables, so a host without pipeline settings can still start while the plugin configuration remains unavailable.
+
 - Plugin loading happens only at startup.
 - The API does not watch the plugin folder. Dropping or replacing DLLs has no effect on running pods.
 - After a plugin is added or replaced, a DevOps engineer must run `kubectl rollout restart deployment/<deployment-name>`; only the replacement pod loads the plugin.
@@ -200,16 +202,18 @@ When plugin configuration is invalid, the host stays up and returns RFC7807 resp
 
    Follow the instructions at [JSCodeSandbox](https://github.com/demetrio-marra/JSCodeSandbox) to deploy the sandbox service. Update the `SESJSSandbox` section in `appsettings.json` with your sandbox URL.
 
-3. **Configure `appsettings.json`**
+3. **Configure host and pipeline settings**
 
   Edit `AgentMesh.Api/appsettings.json` (the API host configuration) to set:
-   - **LLM providers** ? endpoints and API keys (via environment variables) under `InferenceProviders`
-   - **LLMs** ? model names and providers for each tier under `LLMs`
-   - **Agent settings** ? per-agent LLM assignment, temperature, and system prompt files under `Agents`
-   - **Embedding** ? model endpoint and name under `Embedding`
    - **Sandbox** ? URL and sandbox name under `SESJSSandbox`
    - **Agent Memory** ? Mem0 service URL under `AgentMemoryService`
    - **LightRag** ? LightRag proxy configuration under `LightRagKnowledgeService`
+
+  Copy `pipelineSettings.json` from the `AgentMesh.DefaultPipelinePlugin` build output to the API runtime base directory and configure:
+   - **LLM providers** ? endpoints and API keys under `InferenceProviders`
+   - **LLMs** ? model names and providers for each tier under `LLMs`
+   - **Agent settings** ? per-agent LLM assignment, temperature, and system prompt files under `Agents`
+   - **Workflow settings** ? pipeline feature flags and knowledge-base language under `CodeModeWorkflow`
 
    If using the CLI frontend, configure `AgentMeshCLI/appsettings.json` with the API base URL and authentication header/key.
 
@@ -335,7 +339,7 @@ volumes:
 
 ### Configuration Overview
 
-The system is configured entirely through `appsettings.json`. Key sections:
+The system is configured through host `appsettings.json` and the pipeline's `pipelineSettings.json`. Key pipeline sections:
 
 ```jsonc
 {
