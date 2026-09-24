@@ -22,14 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="pipelineSettings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Pack>true</Pack>
-      <PackagePath>contentFiles\any\any\%(Filename)%(Extension)</PackagePath>
-    </None>
-    <None Update="pipelineSettings.Development.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Update="Prompts\**\*.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Pack>true</Pack>
