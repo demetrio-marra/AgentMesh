@@ -2,19 +2,19 @@
 
 ## Purpose
 
-Provide complete default chat and summarization pipelines as an independently consumable plugin example for AgentMesh plugin authors.
+Document an independently consumable external reference plugin for the default chat and summarization pipelines for AgentMesh plugin authors.
 
 ## Requirements
 
-### Requirement: Complete default pipeline sample plugin SHALL be provided
-The distribution SHALL include an executable ASP.NET Core sample plugin that preserves the default chat request and conversation-summarization pipelines' externally observable behavior. The plugin SHALL include the plugin-owned parameters, steps, concrete agents, prompt content, models, helpers, utilities, configuration, and exceptions needed to run both pipelines, plus its composition root and deployment assets.
+### Requirement: Complete default pipeline reference plugin SHALL be documented externally
+AgentMesh documentation SHALL identify `https://github.com/demetrio-marra/AMCodePipeline` as the externally maintained executable reference plugin for the default chat and conversation-summarization pipelines. AgentMesh SHALL not distribute the reference plugin's implementation or deployment assets as an in-repository sample project.
 
-#### Scenario: Default pipeline is registered from the sample plugin
-- **WHEN** the sample plugin starts and identifies its assembly to Runtime
+#### Scenario: Default pipeline is registered from the reference plugin
+- **WHEN** the reference plugin starts and identifies its assembly to Runtime
 - **THEN** Runtime reflection-registers the plugin's components and exposes its single chat pipeline
 
 #### Scenario: Default pipeline request behavior is retained
-- **WHEN** a request reaches the sample plugin service
+- **WHEN** a request reaches the reference plugin service
 - **THEN** it follows the same request-analysis, knowledge, task-execution, and response-composition branches as the prior default pipeline
 
 #### Scenario: CLI user explicitly summarizes conversation context
@@ -34,7 +34,7 @@ The distribution SHALL include an executable ASP.NET Core sample plugin that pre
 - **THEN** the plugin service passes that context to its chat pipeline without retaining server-side context or invoking the summarization pipeline
 
 ### Requirement: The sample plugin SHALL rely on host-provided framework services
-The sample plugin SHALL consume application, agent memory, knowledge-store, reranker, code-sandbox, HTTP API, authentication, callback, and Swagger capabilities through the Runtime package. It SHALL not include replacement implementations for those framework or infrastructure services.
+The reference plugin SHALL consume application, agent memory, knowledge-store, reranker, code-sandbox, HTTP API, authentication, callback, and Swagger capabilities through the Runtime package. It SHALL not include replacement implementations for those framework or infrastructure services.
 
 #### Scenario: Host provides infrastructure dependencies
 - **WHEN** the sample plugin invokes Runtime initialization with valid infrastructure configuration
@@ -45,7 +45,7 @@ The sample plugin SHALL consume application, agent memory, knowledge-store, rera
 - **THEN** its reflected components resolve their required framework services and process requests without embedding Runtime implementations
 
 ### Requirement: The sample plugin SHALL compile against published framework packages
-The sample plugin project SHALL reference required AgentMesh framework APIs through the `AgentMesh.Runtime` NuGet package and SHALL not directly reference the Runtime or Application projects or the retired Application package.
+The reference plugin project SHALL reference required AgentMesh framework APIs through the `AgentMesh.Runtime` NuGet package and SHALL not directly reference the Runtime or Application projects or the retired Application package.
 
 #### Scenario: Plugin project has no direct application-project dependency
 - **WHEN** a developer inspects the sample plugin project references
@@ -89,8 +89,8 @@ Chat and summarization pipeline plugins SHALL receive conversation data through 
 - **THEN** the plugin processes those inputs without requiring access to conversation state retained by the host
 
 ### Requirement: Plugin documentation SHALL identify the framework package
-Documentation for the default chat pipeline plugin SHALL identify `AgentMesh.Runtime` as the plugin-facing package and the plugin project itself as the host responsible for configuration, composition, HTTP execution, and deployment.
+Documentation for the default chat pipeline plugin SHALL identify `AgentMesh.Runtime` as the plugin-facing package, identify `AMCodePipeline` as the external reference project, and state that the plugin project itself is the host responsible for configuration, composition, HTTP execution, and deployment. It SHALL direct developers to the external project's repository for current run and Docker instructions.
 
 #### Scenario: Plugin author selects dependencies
 - **WHEN** a plugin author reads the default pipeline plugin documentation
-- **THEN** they can identify the Runtime package to target and the plugin-owned files required to run and deploy a pipeline service
+- **THEN** they can identify the Runtime package to target, the plugin-owned files required to run and deploy a pipeline service, and the external repository that demonstrates them

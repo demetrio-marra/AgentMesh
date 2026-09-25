@@ -55,13 +55,9 @@ System prompt paths are resolved from the plugin output directory. Place prompt 
 
 ## Default Plugin
 
-[`samples/AgentMesh.DefaultPipelinePlugin`](samples/AgentMesh.DefaultPipelinePlugin) is an executable sample plugin. It contains the default chat and summarization pipelines, their parameters, steps, agents, serializers, prompts, active configuration, launch profile, and Dockerfile.
+[AMCodePipeline](https://github.com/demetrio-marra/AMCodePipeline) is the externally maintained executable reference plugin. It demonstrates the default chat and summarization pipelines, their parameters, steps, agents, serializers, prompts, active configuration, launch profile, and Dockerfile.
 
-Run it in Development:
-
-```bash
-dotnet run --project samples/AgentMesh.DefaultPipelinePlugin
-```
+See the [AMCodePipeline README](https://github.com/demetrio-marra/AMCodePipeline#run-locally) for current local development and startup instructions.
 
 Swagger is available at `/swagger`. The API key is read from the plugin configuration, and the existing request, summarization, callback, and authentication HTTP contracts remain unchanged.
 
@@ -80,12 +76,7 @@ The Runtime package exposes `AgentMesh.Runtime.dll` and bundles `AgentMesh.Appli
 
 Each plugin owns its Dockerfile and produces its own image. Runtime includes an inactive `Dockerfile.template` that demonstrates building a consuming plugin project; copy and adapt it into the plugin project.
 
-Build the default plugin image from the repository root:
-
-```bash
-docker build -f samples/AgentMesh.DefaultPipelinePlugin/Dockerfile -t agentmesh-default-pipeline-plugin .
-docker run -p 8080:8080 -e ApiAuth__ApiKey=your-api-key agentmesh-default-pipeline-plugin
-```
+Build and run the reference plugin by following the [AMCodePipeline Docker instructions](https://github.com/demetrio-marra/AMCodePipeline#run-with-docker).
 
 The image entry point is the plugin assembly, not Runtime. Keep deployment-specific secrets outside the image.
 
