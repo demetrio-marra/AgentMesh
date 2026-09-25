@@ -1,6 +1,6 @@
 using AgentMesh.Models;
 
-namespace AgentMesh.Api.Models;
+namespace AgentMesh.Runtime.Models;
 
 public sealed class SummarizationStartedCallbackPayload
 {

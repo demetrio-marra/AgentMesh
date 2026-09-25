@@ -366,3 +366,4 @@ FodyWeavers.xsd
 /AgentMesh.Infrastructure.JSSandbox/Sandbox/rootca.cer
 /AgentMesh.Api/appsettings.Api.Development.json
 /AgentMesh.Api/appsettings.Development.json
+/samples/AgentMesh.DefaultPipelinePlugin/appsettings.Development.json

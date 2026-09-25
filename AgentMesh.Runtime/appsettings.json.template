@@ -1,0 +1,69 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information"
+    }
+  },
+  "ApiAuth": {
+    "ApiKey": "<set-a-secure-api-key>",
+    "HeaderName": "X-Api-Key"
+  },
+  "User": {
+    "AgentId": "User"
+  },
+  "Resilience": {
+    "RetryCount": 5
+  },
+  "SESJSSandbox": {
+    "SandboxServiceURL": "https://sandbox.example.com",
+    "SandboxName": "default"
+  },
+  "InferenceProviders": {
+    "OpenAI": {
+      "Endpoint": "https://api.openai.com/v1",
+      "ApiKey": "<set-provider-api-key>"
+    }
+  },
+  "LLMs": {
+    "default": {
+      "CostPerMillionInputTokens": "0",
+      "CostPerMillionOutputTokens": "0",
+      "CostPerHour": null,
+      "Model": "<set-model-name>",
+      "Provider": "OpenAI"
+    }
+  },
+  "Agents": {
+    "ExampleAgent": {
+      "LLM": "default",
+      "ModelTemperature": "0.7",
+      "SystemPromptFile": "Prompts/ExampleAgent.SystemPrompt.txt"
+    }
+  },
+  "ConversationSummarization": {
+    "SummaryTokenThreshold": 4000,
+    "NumMessageToPreseve": 6,
+    "SummarizeLanguage": "English"
+  },
+  "AgentMemoryService": {
+    "BaseUrl": "https://memory.example.com",
+    "TimeoutSeconds": 90
+  },
+  "LightRagService": {
+    "BaseUrl": "https://knowledge.example.com",
+    "MaxTopK": 50,
+    "ApiKey": "<set-knowledge-api-key>"
+  },
+  "CohereV1RerankerService": {
+    "BaseUrl": "https://reranker.example.com",
+    "ApiKey": "<set-reranker-api-key>",
+    "Model": "<set-reranker-model>",
+    "TimeoutSeconds": 30
+  },
+  "CodeModeWorkflow": {
+    "EnableMemoryService": false,
+    "EnableDomainExpert": false,
+    "rerankOnHybridSearch": true,
+    "languageOfKnowledgeBase": "English"
+  }
+}

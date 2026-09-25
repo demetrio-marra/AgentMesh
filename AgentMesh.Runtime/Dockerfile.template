@@ -1,11 +1,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-COPY AgentMesh.Api/AgentMesh.Api.csproj ./AgentMesh.Api/
-RUN dotnet restore AgentMesh.Api/AgentMesh.Api.csproj
+COPY NuGet.config ./
+COPY MyPlugin/MyPlugin.csproj ./MyPlugin/
+RUN dotnet restore MyPlugin/MyPlugin.csproj
 
-COPY . .
-RUN dotnet publish AgentMesh.Api/AgentMesh.Api.csproj \
+COPY MyPlugin ./MyPlugin/
+RUN dotnet publish MyPlugin/MyPlugin.csproj \
     --configuration Release \
     --no-restore \
     --output /app/publish \
@@ -19,4 +20,4 @@ COPY --from=build /app/publish .
 EXPOSE 8080
 ENV ASPNETCORE_HTTP_PORTS=8080
 
-ENTRYPOINT ["dotnet", "AgentMesh.Api.dll"]
+ENTRYPOINT ["dotnet", "MyPlugin.dll"]

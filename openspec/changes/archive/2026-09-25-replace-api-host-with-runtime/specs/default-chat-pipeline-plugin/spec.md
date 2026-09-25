@@ -1,10 +1,4 @@
-# default-chat-pipeline-plugin Specification
-
-## Purpose
-
-Provide complete default chat and summarization pipelines as an independently consumable plugin example for AgentMesh plugin authors.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Complete default pipeline sample plugin SHALL be provided
 The distribution SHALL include an executable ASP.NET Core sample plugin that preserves the default chat request and conversation-summarization pipelines' externally observable behavior. The plugin SHALL include the plugin-owned parameters, steps, concrete agents, prompt content, models, helpers, utilities, configuration, and exceptions needed to run both pipelines, plus its composition root and deployment assets.
@@ -59,19 +53,12 @@ The sample plugin project SHALL reference required AgentMesh framework APIs thro
 - **WHEN** the sample plugin restores `AgentMesh.Runtime`
 - **THEN** the package supplies the Application assembly required by the sample's framework-derived types
 
-### Requirement: Concrete summarization configuration SHALL be CLI-owned
-The concrete configuration class that defines the summarization language and retention policy SHALL be owned by the CLI project. Framework and plugin projects SHALL not define that concrete configuration class; the plugin SHALL consume only framework configuration contracts required to execute its pipeline.
-
-#### Scenario: Configuration ownership is inspected
-- **WHEN** a developer inspects the solution's summarization configuration types
-- **THEN** the sole concrete summarization configuration class is in the CLI project and neither framework nor sample plugin defines it
-
 ### Requirement: Plugin deployment SHALL remain host-operator managed
 The sample plugin SHALL own its active settings, environment settings, launch profile, Dockerfile, executable startup, and deployment output. Its build SHALL not copy artifacts into a separate API host or plugin directory.
 
 #### Scenario: Plugin build does not alter host plugin directories
 - **WHEN** the sample plugin is built
-- **THEN** no build configuration places its artifacts in another host's output or a `Plugins/` directory
+- **THEN** no build configuration places its artifacts in another host's `bin/Plugins` directory
 
 #### Scenario: Plugin loads base and environment settings
 - **WHEN** the sample plugin starts in a named environment
@@ -81,12 +68,9 @@ The sample plugin SHALL own its active settings, environment settings, launch pr
 - **WHEN** an operator builds the sample plugin Dockerfile
 - **THEN** the resulting image runs the sample plugin executable as the web service
 
-### Requirement: Pipeline plugins SHALL not depend on host-owned conversation state
-Chat and summarization pipeline plugins SHALL receive conversation data through their existing initialization inputs and SHALL NOT require a host-owned conversation context or a stateful application runner.
-
-#### Scenario: Plugin pipelines run with caller-supplied context
-- **WHEN** a host invokes a loaded chat or summarization pipeline with supplied conversation messages
-- **THEN** the plugin processes those inputs without requiring access to conversation state retained by the host
+#### Scenario: Plugin build remains self-contained
+- **WHEN** the sample plugin is built
+- **THEN** no build configuration copies its artifacts into another host's output or a `Plugins/` directory
 
 ### Requirement: Plugin documentation SHALL identify the framework package
 Documentation for the default chat pipeline plugin SHALL identify `AgentMesh.Runtime` as the plugin-facing package and the plugin project itself as the host responsible for configuration, composition, HTTP execution, and deployment.

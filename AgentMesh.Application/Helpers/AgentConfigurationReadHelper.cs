@@ -5,7 +5,7 @@ namespace AgentMesh.Helpers
 {
     public static class AgentConfigurationReadHelper
     {
-        public static IEnumerable<AgentFlatConfigurationRecord> ReadAgentConfigurations(AppSettingsConfigurationDto appSettings, string basePath, string pluginsPath)
+        public static IEnumerable<AgentFlatConfigurationRecord> ReadAgentConfigurations(AppSettingsConfigurationDto appSettings, string basePath)
         {
             foreach (var (agentName, agentConfiguration) in appSettings.Agents)
             {
@@ -36,12 +36,12 @@ namespace AgentMesh.Helpers
                     LLMClassCostPerMillionOutputTokens = llmConfiguration.CostPerMillionOutputTokens,
                     LLMClassCostPerHour = llmConfiguration.CostPerHour,
                     Temperature = agentConfiguration.ModelTemperature,
-                    SystemPrompt = ResolveSystemPrompt(agentConfiguration, basePath, pluginsPath)
+                    SystemPrompt = ResolveSystemPrompt(agentConfiguration, basePath)
                 };
             }
         }
 
-        private static string ResolveSystemPrompt(AgentConfigurationDto agentConfiguration, string basePath, string pluginsPath)
+        private static string ResolveSystemPrompt(AgentConfigurationDto agentConfiguration, string basePath)
         {
             if (!string.IsNullOrWhiteSpace(agentConfiguration.SystemPrompt))
             {
@@ -57,20 +57,7 @@ namespace AgentMesh.Helpers
                 ? agentConfiguration.SystemPromptFile
                 : Path.Combine(basePath, agentConfiguration.SystemPromptFile);
 
-            if (!File.Exists(promptFilePath))
-            {
-                var pluginsBasePath = Path.IsPathRooted(pluginsPath)
-                    ? pluginsPath
-                    : Path.Combine(basePath, pluginsPath);
-                promptFilePath = Path.Combine(pluginsBasePath, agentConfiguration.SystemPromptFile);
-
-                if (!File.Exists(promptFilePath))
-                {
-                    return string.Empty;
-                }
-            }
-
-            return File.ReadAllText(promptFilePath);
+            return File.Exists(promptFilePath) ? File.ReadAllText(promptFilePath) : string.Empty;
         }
     }
 }

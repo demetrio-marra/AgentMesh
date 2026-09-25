@@ -1,23 +1,6 @@
-# api-cli-separation Specification
+## ADDED Requirements
 
-## Purpose
-
-Provide distinct, predictable console and plugin-web entry points so users select the required runtime through the launch target rather than runtime mode flags.
-
-## Requirements
-
-### Requirement: Console entry point is console-only
-The console entry point SHALL start the interactive workflow directly and SHALL NOT select between console and HTTP hosting based on a command-line mode switch.
-
-#### Scenario: Launch the console profile
-- **WHEN** the `Interactive` launch profile starts the console project
-- **THEN** the interactive user input workflow starts without requiring `--interactive`
-
-#### Scenario: Pass the former mode switch to the console
-- **WHEN** the console executable is started with `--interactive`
-- **THEN** it SHALL NOT start an HTTP host or use the switch to select an alternate runtime
-
-### Requirement: Plugin entry point is web-only
+### Requirement: Plugin entry point SHALL be web-only
 Each pipeline plugin SHALL be an ASP.NET Core web executable that hosts the existing authenticated HTTP API and executes requests through the stateless application path supplied by the Runtime package.
 
 #### Scenario: Launch a plugin web service
@@ -28,8 +11,8 @@ Each pipeline plugin SHALL be an ASP.NET Core web executable that hosts the exis
 - **WHEN** a client sends a valid API-key-authenticated request to the plugin service
 - **THEN** the service returns the existing workflow result contract and preserves the single-pipeline request behavior
 
-### Requirement: Runtime and plugin build boundaries are independent
-`AgentMesh.Runtime` SHALL be a reusable class-library package that references Application at compile time, and each plugin web executable SHALL consume Runtime through its NuGet package without dynamic plugin assembly loading. The Runtime package SHALL provide both Runtime and Application assemblies to plugin consumers, and `AgentMesh.Framework.Application` SHALL no longer be published.
+### Requirement: Runtime and plugin build boundaries SHALL be independent
+`AgentMesh.Runtime` SHALL be a reusable class-library package that references Application at compile time, and each plugin web executable SHALL consume Runtime through its NuGet package without dynamic plugin assembly loading. The Runtime package SHALL provide both the Runtime and Application assemblies transitively to plugin consumers, and `AgentMesh.Framework.Application` SHALL no longer be published.
 
 #### Scenario: Build Runtime independently
 - **WHEN** a developer restores and builds the Runtime project
@@ -43,7 +26,7 @@ Each pipeline plugin SHALL be an ASP.NET Core web executable that hosts the exis
 - **WHEN** a developer inspects the plugin's package graph
 - **THEN** it contains no dependency on `AgentMesh.Framework.Application`
 
-### Requirement: Runtime configuration is plugin-owned
+### Requirement: Runtime configuration SHALL be plugin-owned
 Each plugin web executable SHALL own its active runtime configuration and SHALL load required `appsettings.json` and optional `appsettings.{Environment}.json` files before initializing AgentMesh. Runtime SHALL distribute inactive settings and Dockerfile templates as starting samples rather than active host assets.
 
 #### Scenario: Plugin starts from its own configuration
@@ -57,6 +40,8 @@ Each plugin web executable SHALL own its active runtime configuration and SHALL 
 #### Scenario: Runtime templates remain inactive
 - **WHEN** a plugin consumes the Runtime package without creating active files from the templates
 - **THEN** the templates are not automatically treated as application configuration or as the plugin Docker build file
+
+## MODIFIED Requirements
 
 ### Requirement: Launch profiles select the host
 The development launch configuration SHALL expose `Interactive` for the console project and `Web` for a plugin web executable.
@@ -80,16 +65,26 @@ The CLI frontend and each plugin web host SHALL use the configuration required f
 - **WHEN** a plugin host starts with valid base and environment configuration
 - **THEN** its workflow initializes without requiring settings files from Runtime or another executable project
 
-### Requirement: API and CLI documentation identify executable roles
+### Requirement: API and CLI documentation SHALL identify executable roles
 The architecture documentation for this capability SHALL identify a plugin web project as the executable API service, `AgentMesh.Runtime` as its reusable HTTP and framework runtime package, and `AgentMeshCLI` as the REST terminal frontend. It SHALL not describe Runtime as an executable host or the CLI as a composition root for pipeline runtime services.
 
 #### Scenario: Contributor reviews host responsibilities
 - **WHEN** a contributor reads the API and CLI separation documentation
 - **THEN** they can distinguish plugin-host, Runtime-package, and REST-terminal responsibilities
 
-### Requirement: Console frontend SHALL use the API
-The console entry point SHALL own only interactive input, in-memory conversation state, HTTP transport, callback reception, and console presentation; pipeline execution and runtime service configuration SHALL remain owned by the plugin web entry point.
+## REMOVED Requirements
 
-#### Scenario: Console starts independently of pipeline runtime
-- **WHEN** the CLI starts with a reachable plugin service configuration
-- **THEN** it can initialize its interactive frontend without loading the plugin pipeline implementation locally
+### Requirement: API entry point is web-only
+**Reason**: The standalone API executable is replaced by plugin-owned web executables that consume the Runtime package.
+
+**Migration**: Move API startup responsibilities to the plugin `Program` and use Runtime initialization methods for framework and HTTP behavior.
+
+### Requirement: Executable hosts are build-independent
+**Reason**: Its API-host and dynamically loaded plugin dependency rules are replaced by the Runtime package and compile-time plugin model.
+
+**Migration**: Reference `AgentMesh.Runtime` from each plugin web project and remove API-host plugin discovery and Application package references.
+
+### Requirement: Runtime configuration SHALL be merged into API-owned files
+**Reason**: Active runtime configuration is now owned by each executable plugin rather than by a standalone API project.
+
+**Migration**: Create plugin-level base and environment settings from the packaged settings template and move deployment-specific values there.

@@ -1,17 +1,4 @@
-# architecture-documentation Specification
-
-## Purpose
-
-Provide a stable architecture reference for AgentMesh so future users and contributors can understand system structure, runtime flow, boundaries, and extension points without reverse-engineering source code.
-
-## Requirements
-
-### Requirement: The project SHALL provide a versioned architecture overview
-The repository SHALL include architecture documentation, tracked through OpenSpec artifacts, that describes the system at a project level.
-
-#### Scenario: Architecture overview is available
-- **WHEN** a contributor opens the architecture documentation capability
-- **THEN** they can find a project-level description of AgentMesh architecture and goals
+## MODIFIED Requirements
 
 ### Requirement: The architecture documentation SHALL describe layering and responsibilities
 The architecture documentation SHALL describe `AgentMesh` as the basic domain-entity package, `AgentMesh.Contracts` as the infrastructure-service contract package, `AgentMesh.Infrastructure.*` as external-system adapters, `AgentMesh.Application` as the internal application-framework assembly, `AgentMesh.Runtime` as the reusable plugin-facing runtime and HTTP package, each plugin as an executable pipeline service, and `AgentMeshCLI` as the REST terminal frontend.
@@ -56,6 +43,10 @@ The architecture documentation SHALL state that each plugin project produces its
 #### Scenario: Developer creates a plugin host
 - **WHEN** a developer starts a plugin project
 - **THEN** the documentation explains how to create plugin-owned settings and Dockerfile assets from the Runtime templates
+
+#### Scenario: Developer deploys a changed pipeline
+- **WHEN** committed pipeline code changes
+- **THEN** the documentation directs the developer to build and publish the plugin executable or image, deploy it, and verify the rollout
 
 ### Requirement: The architecture documentation SHALL describe runtime request flow
 The architecture documentation SHALL describe the end-to-end flow from plugin host startup through custom dependency registration, Runtime reflection registration, final host construction, HTTP request handling, pipeline execution, and CLI consumption.

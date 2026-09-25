@@ -21,7 +21,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.Co
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{5D20AA90-6969-D8BD-9DCD-8634F4692FDA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Api", "AgentMesh.Api\AgentMesh.Api.csproj", "{1ED0490D-9A9A-49F5-B475-01E8C11F27E1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Runtime", "AgentMesh.Runtime\AgentMesh.Runtime.csproj", "{1ED0490D-9A9A-49F5-B475-01E8C11F27E1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.DefaultPipelinePlugin", "samples\AgentMesh.DefaultPipelinePlugin\AgentMesh.DefaultPipelinePlugin.csproj", "{E16D2ACB-6DCF-44E7-8D67-5BF3D4C85D75}"
 EndProject
