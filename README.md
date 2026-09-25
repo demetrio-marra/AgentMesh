@@ -2,6 +2,8 @@
 
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) [![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-8.0-512BD4?logo=dotnet&logoColor=white)](https://learn.microsoft.com/en-us/aspnet/core/) [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/) [![Kubernetes](https://img.shields.io/badge/Kubernetes-ready-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/) [![NuGet stable version](https://badgen.net/nuget/v/agentmesh.runtime)](https://nuget.org/packages/agentmesh.runtime)
 
+[![OpenAI-compatible](https://img.shields.io/badge/OpenAI-compatible-412991?logo=openai&logoColor=white)](https://platform.openai.com/docs/api-reference/chat) [![Mem0](https://img.shields.io/badge/Mem0-memory-0b7285)](https://mem0.ai/) [![LightRAG](https://img.shields.io/github/stars/hkuds/lightrag?style=flat&logo=github&label=LightRAG)](https://github.com/hkuds/lightrag) [![Cohere](https://img.shields.io/badge/Cohere-reranking-39594d)](https://cohere.com/) [![JSCodeSandbox](https://img.shields.io/github/stars/demetrio-marra/JSCodeSandbox?style=flat&logo=github&label=JSCodeSandbox)](https://github.com/demetrio-marra/JSCodeSandbox)
+
 AgentMesh is a .NET 8 framework for building AI-powered request pipelines from parameters, steps, agents, and infrastructure adapters. Each deployed pipeline is an ASP.NET Core plugin web service.
 
 ## Why AgentMesh
@@ -14,6 +16,7 @@ AgentMesh puts the **pipeline**, not an individual agent or code step, at the ce
 - **Flexible serialization**: Agent inputs can use a custom serializer instead of assuming JSON, and parameter display serializers can truncate, summarize, or omit large values from progress and diagnostic output.
 - **Token and cost accounting**: Agent execution statistics include input and output tokens. Configure per-million-token prices for token-based costs or an optional hourly rate for time-based pricing, and AgentMesh calculates execution totals.
 - **Lean REST API**: Expose a plugin pipeline through authenticated `POST /api/requests` and `POST /api/requests/async` endpoints, with optional workflow callbacks. `POST /api/summarize` and `POST /api/summarize/async` can condense conversation context when it becomes too large.
+- **Service connectors for custom pipelines**: Developers can use connectors for [OpenAI ChatCompletions-compatible endpoints](https://platform.openai.com/docs/api-reference/chat), [Mem0](https://mem0.ai/) , [LightRAG](https://github.com/hkuds/lightrag) , reranker-compatible endpoints such as [Cohere](https://cohere.com/) , and [JSCodeSandbox](https://github.com/demetrio-marra/JSCodeSandbox) for JavaScript code execution .
 - **Container and Kubernetes ready**: Plugin applications own their Dockerfiles and deployment manifests, while AgentMesh Runtime provides the plugin-facing host model and deployment guidance for running one pipeline service per deployment.
 
 ## Architecture
