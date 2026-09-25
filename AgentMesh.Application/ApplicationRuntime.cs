@@ -21,17 +21,14 @@ public static class ApplicationRuntime
     {
         var appSettings = new AppSettingsConfigurationDto();
         configuration.Bind(appSettings);
-        var pluginHostConfiguration = new PluginHostConfiguration();
-        configuration.GetSection(PluginHostConfiguration.SectionName).Bind(pluginHostConfiguration);
         services.AddLogging(loggingBuilder =>
         {
             loggingBuilder.AddConfiguration(configuration.GetSection("Logging"));
             loggingBuilder.AddConsole();
         });
-        services.AddSingleton(pluginHostConfiguration);
         services.AddSingleton<IOpenAIClientFactory, OpenAIClientFactory>();
 
-        services.AddSingleton<IEnumerable<AgentFlatConfigurationRecord>>(AgentConfigurationReadHelper.ReadAgentConfigurations(appSettings, AppContext.BaseDirectory, pluginHostConfiguration.PluginsPath).ToArray());
+        services.AddSingleton<IEnumerable<AgentFlatConfigurationRecord>>(AgentConfigurationReadHelper.ReadAgentConfigurations(appSettings, AppContext.BaseDirectory).ToArray());
         services.AddScoped<IParameterStore, ParameterStore>();
 
         var lightRagConfiguration = new LightRagServiceConfiguration();

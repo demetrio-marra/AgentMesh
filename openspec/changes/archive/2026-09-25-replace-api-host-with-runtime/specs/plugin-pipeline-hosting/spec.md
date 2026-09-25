@@ -1,10 +1,4 @@
-# plugin-pipeline-hosting Specification
-
-## Purpose
-
-Define framework behavior for compile-time plugin web services using the Runtime package, stable framework contracts, and NuGet-based extensibility.
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Runtime SHALL discover plugin components through a marker assembly
 Each plugin SHALL expose a concrete type implementing the empty `IAgentMeshPlugin` marker contract. Runtime initialization SHALL use that marker type to identify the compile-time referenced plugin assembly and reflection-register every concrete implementation of documented AgentMesh extension contracts, including pipeline, summarization pipeline, step, parameter, agent, and serializer contracts.
@@ -47,6 +41,8 @@ Runtime initialization SHALL register services without building the service prov
 - **WHEN** the plugin passes its built web application to Runtime startup
 - **THEN** the existing controllers, authentication, authorization, and Swagger surface are configured and the service starts
 
+## MODIFIED Requirements
+
 ### Requirement: Framework contracts SHALL be distributable as NuGet packages
 The framework SHALL provide distributable NuGet packages containing core contracts, immutable API DTO schemas, infrastructure contracts, and the Runtime and Application APIs required to build plugin web services. Plugins SHALL consume AgentMesh framework dependencies through NuGet package references and SHALL not directly reference framework project files.
 
@@ -56,6 +52,14 @@ The framework SHALL provide distributable NuGet packages containing core contrac
 
 #### Scenario: Hosts consume framework packages
 - **WHEN** a developer inspects a plugin web host's references
+- **THEN** its AgentMesh framework dependencies are NuGet package references and no project reference targets an AgentMesh framework project
+
+#### Scenario: Plugin author builds against Runtime package
+- **WHEN** a third-party developer creates a plugin web project
+- **THEN** they can reference `AgentMesh.Runtime`, implement framework contracts, and host the API without modifying Runtime code
+
+#### Scenario: Plugin consumes framework packages
+- **WHEN** a developer inspects a plugin project's references
 - **THEN** its AgentMesh framework dependencies are NuGet package references and no project reference targets an AgentMesh framework project
 
 ### Requirement: Each API deployment SHALL host one chat pipeline
@@ -84,6 +88,10 @@ The default pipeline SHALL be deployable as its own plugin web application. Its 
 - **WHEN** the default plugin provides a summarization pipeline
 - **THEN** Runtime exposes the standard summarization endpoints without creating plugin-named routes or accepting a pipeline name
 
+#### Scenario: Start the default plugin service
+- **WHEN** the default plugin executable starts with valid configuration
+- **THEN** Runtime registers its components and exposes its chat and summarization pipelines through the standard API
+
 #### Scenario: Deployment contains no plugin folder
 - **WHEN** the default plugin service is published or containerized
 - **THEN** it runs without discovering or loading assemblies from a configured `Plugins/` directory
@@ -94,3 +102,15 @@ Documentation for plugin hosting SHALL identify `AgentMesh` as domain entities, 
 #### Scenario: Plugin author reviews layering
 - **WHEN** a plugin author reads plugin-hosting documentation
 - **THEN** they can choose the correct package and composition boundary for framework extensions, custom dependencies, configuration, and deployment
+
+## REMOVED Requirements
+
+### Requirement: Plugins SHALL self-register services through a bootstrap contract
+**Reason**: Runtime now reflection-registers recognized framework components from the assembly identified by the empty marker contract.
+
+**Migration**: Replace the bootstrap implementation with an `IAgentMeshPlugin` marker type and retain only explicit plugin-specific registrations before Runtime initialization.
+
+### Requirement: Host SHALL load plugins from the Plugins folder at startup
+**Reason**: Plugins are executable hosts with compile-time Runtime references; dynamic DLL discovery and loading are no longer supported.
+
+**Migration**: Publish and deploy each plugin web project directly, then restart or roll out that service when its executable changes.
