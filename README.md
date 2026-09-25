@@ -1,6 +1,20 @@
 # AgentMesh
 
+[![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) [![ASP.NET Core](https://img.shields.io/badge/ASP.NET%20Core-8.0-512BD4?logo=dotnet&logoColor=white)](https://learn.microsoft.com/en-us/aspnet/core/) [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/) [![Kubernetes](https://img.shields.io/badge/Kubernetes-ready-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/) [![NuGet stable version](https://badgen.net/nuget/v/agentmesh.runtime)](https://nuget.org/packages/agentmesh.runtime)
+
 AgentMesh is a .NET 8 framework for building AI-powered request pipelines from parameters, steps, agents, and infrastructure adapters. Each deployed pipeline is an ASP.NET Core plugin web service.
+
+## Why AgentMesh
+
+AgentMesh puts the **pipeline**, not an individual agent or code step, at the center of an application. Steps exchange data through a parameter store, so the workflow remains explicit, observable, and adaptable as the pipeline grows.
+
+- **Pipeline-centric orchestration**: Steps declare their input and output parameters, while the pipeline controls execution and the parameter store mediates data exchange between steps.
+- **Automatic change tracking**: When a step changes a parameter, AgentMesh records the before and after values and reports the mutation as part of the pipeline run.
+- **Mostly declarative steps**: Many steps can be described by their parameter dependencies and execution behavior without bespoke wiring for every data transfer.
+- **Flexible serialization**: Agent inputs can use a custom serializer instead of assuming JSON, and parameter display serializers can truncate, summarize, or omit large values from progress and diagnostic output.
+- **Token and cost accounting**: Agent execution statistics include input and output tokens. Configure per-million-token prices for token-based costs or an optional hourly rate for time-based pricing, and AgentMesh calculates execution totals.
+- **Lean REST API**: Expose a plugin pipeline through authenticated `POST /api/requests` and `POST /api/requests/async` endpoints, with optional workflow callbacks. `POST /api/summarize` and `POST /api/summarize/async` can condense conversation context when it becomes too large.
+- **Container and Kubernetes ready**: Plugin applications own their Dockerfiles and deployment manifests, while AgentMesh Runtime provides the plugin-facing host model and deployment guidance for running one pipeline service per deployment.
 
 ## Architecture
 
