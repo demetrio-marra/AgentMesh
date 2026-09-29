@@ -22,20 +22,6 @@ public class ProcessRequestApiInput
     public IEnumerable<ContextMessage>? Conversation { get; set; }
 }
 
-public sealed class ProcessRequestAsyncApiInput : ProcessRequestApiInput
-{
-    public string? WorkflowStartedCallbackUrl { get; set; }
-    public string? WorkflowStepStartedCallbackUrl { get; set; }
-    public string? WorkflowStepCompletedCallbackUrl { get; set; }
-    public string? WorkflowCompletedCallbackUrl { get; set; }
-    public string? WorkflowErrorCallbackUrl { get; set; }
-}
-
-public sealed class ProcessRequestAsyncApiOutput
-{
-    public Guid RequestId { get; set; }
-}
-
 public sealed class ProcessRequestApiOutput
 {
     public Guid RequestId { get; set; }
@@ -46,20 +32,6 @@ public class SummarizationApiInput
 {
     public string SummarizationLanguage { get; set; } = string.Empty;
     public IEnumerable<ContextMessage> Conversation { get; set; } = [];
-}
-
-public sealed class SummarizationAsyncApiInput : SummarizationApiInput
-{
-    public string? WorkflowStartedCallbackUrl { get; set; }
-    public string? WorkflowStepStartedCallbackUrl { get; set; }
-    public string? WorkflowStepCompletedCallbackUrl { get; set; }
-    public string? WorkflowCompletedCallbackUrl { get; set; }
-    public string? WorkflowErrorCallbackUrl { get; set; }
-}
-
-public sealed class SummarizationAsyncApiOutput
-{
-    public Guid RequestId { get; set; }
 }
 
 public sealed class ConfigurationSummaryApiOutput
@@ -147,13 +119,4 @@ public sealed class AgentExecutionCost
     [JsonIgnore] public decimal TotalCost => IsHourlyCost ? HourlyCost : InputCost + OutputCost;
 }
 
-public sealed class WorkflowStartedCallbackPayload { public Guid RequestId { get; set; } }
-public sealed class WorkflowStepStartedCallbackPayload { public Guid RequestId { get; set; } public string StepName { get; set; } = string.Empty; public IEnumerable<EWDisplayParameterRecord> InputParameters { get; set; } = []; }
-public sealed class WorkflowStepCompletedCallbackPayload { public Guid RequestId { get; set; } public string StepName { get; set; } = string.Empty; public TimeSpan Elapsed { get; set; } public bool IsAgentic { get; set; } public IEnumerable<EWDisplayDiffParameterRecord> ParametersDiff { get; set; } = []; }
-public sealed class WorkflowCompletedCallbackPayload { public Guid RequestId { get; set; } public WorkflowResult Result { get; set; } = new(); }
-public sealed class WorkflowErrorCallbackPayload { public Guid RequestId { get; set; } public string ErrorMessage { get; set; } = string.Empty; }
-public sealed class SummarizationStartedCallbackPayload { public Guid RequestId { get; set; } }
-public sealed class SummarizationStepStartedCallbackPayload { public Guid RequestId { get; set; } public string StepName { get; set; } = string.Empty; public IEnumerable<EWDisplayParameterRecord> InputParameters { get; set; } = []; }
-public sealed class SummarizationStepCompletedCallbackPayload { public Guid RequestId { get; set; } public string StepName { get; set; } = string.Empty; public TimeSpan Elapsed { get; set; } public bool IsAgentic { get; set; } public IEnumerable<EWDisplayDiffParameterRecord> ParametersDiff { get; set; } = []; }
 public sealed class SummarizationCompletedCallbackPayload { public Guid RequestId { get; set; } public string SummarizedContent { get; set; } = string.Empty; public DateTime SummarizedContentDatetime { get; set; } }
-public sealed class SummarizationErrorCallbackPayload { public Guid RequestId { get; set; } public string ErrorMessage { get; set; } = string.Empty; }

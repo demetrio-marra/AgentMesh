@@ -8,7 +8,6 @@ namespace AgentMesh.Services;
 internal sealed class UserConsoleInputService(
     AgentMeshApiClient apiClient,
     ConversationSummarizationConfiguration summarizationConfiguration,
-    PendingRequestRegistry pendingRequests,
     ConversationState conversationState) : BackgroundService
 {
     private bool _isFirstRun = true;
@@ -70,20 +69,9 @@ internal sealed class UserConsoleInputService(
         Console.TreatControlCAsInput = true;
         using var requestCancellation = CancellationTokenSource.CreateLinkedTokenSource(applicationCancellationToken);
         var cancelMonitorTask = MonitorRequestCancellationByKeyboardAsync(requestCancellation, applicationCancellationToken);
-        Guid? requestId = null;
         try
         {
-            requestId = await apiClient.SubmitChatAsync(message, conversationState.Conversation, requestCancellation.Token);
-            var pendingRequest = pendingRequests.Register(requestId.Value, isSummarization: false);
-            var callbackResult = await pendingRequest.Completion.Task.WaitAsync(requestCancellation.Token);
-
-            if (!string.IsNullOrWhiteSpace(callbackResult.ErrorMessage))
-            {
-                ConsoleHelper.WriteLineWithColor(callbackResult.ErrorMessage, ConsoleColor.Red);
-                return;
-            }
-
-            var result = callbackResult.WorkflowResult ?? throw new InvalidOperationException("The API returned no workflow result.");
+            var result = await apiClient.StreamChatAsync(message, conversationState.Conversation, requestCancellation.Token);
             var requestDate = DateTime.UtcNow;
             conversationState.Conversation.Add(new ContextMessage { Role = ContextMessageRole.User, Date = requestDate, Text = message });
             conversationState.Conversation.Add(new ContextMessage { Role = ContextMessageRole.Assistant, Date = DateTime.UtcNow, Text = result.Message });
@@ -103,11 +91,6 @@ internal sealed class UserConsoleInputService(
         }
         catch (OperationCanceledException) when (requestCancellation.IsCancellationRequested && !applicationCancellationToken.IsCancellationRequested)
         {
-            if (requestId.HasValue)
-            {
-                pendingRequests.TryAbandon(requestId.Value);
-            }
-
             ConsoleHelper.WriteLineWithColor("Request canceled.", ConsoleColor.Yellow);
         }
         catch (Exception exception)
@@ -137,21 +120,10 @@ internal sealed class UserConsoleInputService(
             return;
         }
 
-        Guid? requestId = null;
         try
         {
             var messagesToSummarize = conversationState.Conversation.Take(includeCount).ToList();
-            requestId = await apiClient.SubmitSummarizationAsync(summarizationConfiguration.SummarizeLanguage, messagesToSummarize, cancellationToken);
-            var pendingRequest = pendingRequests.Register(requestId.Value, isSummarization: true);
-            var callbackResult = await pendingRequest.Completion.Task.WaitAsync(cancellationToken);
-
-            if (!string.IsNullOrWhiteSpace(callbackResult.ErrorMessage))
-            {
-                ConsoleHelper.WriteLineWithColor(callbackResult.ErrorMessage, ConsoleColor.Red);
-                return;
-            }
-
-            var summary = callbackResult.SummarizationResult ?? throw new InvalidOperationException("The API returned no summarization result.");
+            var summary = await apiClient.StreamSummarizationAsync(summarizationConfiguration.SummarizeLanguage, messagesToSummarize, cancellationToken);
             var preservedMessages = conversationState.Conversation.Skip(includeCount).ToList();
             conversationState.Conversation.Clear();
             conversationState.Conversation.Add(new ContextMessage
@@ -166,11 +138,6 @@ internal sealed class UserConsoleInputService(
         }
         catch (OperationCanceledException)
         {
-            if (requestId.HasValue)
-            {
-                pendingRequests.TryAbandon(requestId.Value);
-            }
-
             ConsoleHelper.WriteLineWithColor("Summarization canceled.", ConsoleColor.Yellow);
         }
         catch (Exception exception)

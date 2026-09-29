@@ -18,16 +18,16 @@ namespace AgentMesh.Services
         {
             if (context.ExecutionKind == WorkflowExecutionContextKind.Summarization)
             {
-                return PostIfConfiguredAsync(context.WorkflowStartedCallbackUrl, new SummarizationStartedCallbackPayload
+                return PublishAsync("workflowStarted", new SummarizationStartedCallbackPayload
                 {
                     RequestId = context.RequestId
-                });
+                }, context.WorkflowStartedCallbackUrl);
             }
 
-            return PostIfConfiguredAsync(context.WorkflowStartedCallbackUrl, new WorkflowStartedCallbackPayload
+            return PublishAsync("workflowStarted", new WorkflowStartedCallbackPayload
             {
                 RequestId = context.RequestId
-            });
+            }, context.WorkflowStartedCallbackUrl);
         }
 
         // The final workflow result/error is not known here; AppInstance posts workflowCompleted/workflowError itself once the pipeline finishes.
@@ -37,48 +37,53 @@ namespace AgentMesh.Services
         {
             if (context.ExecutionKind == WorkflowExecutionContextKind.Summarization)
             {
-                return PostIfConfiguredAsync(context.WorkflowStepStartedCallbackUrl, new SummarizationStepStartedCallbackPayload
+                return PublishAsync("workflowStepStarted", new SummarizationStepStartedCallbackPayload
                 {
                     RequestId = context.RequestId,
                     StepName = stepName,
                     InputParameters = inputParameters
-                });
+                }, context.WorkflowStepStartedCallbackUrl);
             }
 
-            return PostIfConfiguredAsync(context.WorkflowStepStartedCallbackUrl, new WorkflowStepStartedCallbackPayload
+            return PublishAsync("workflowStepStarted", new WorkflowStepStartedCallbackPayload
             {
                 RequestId = context.RequestId,
                 StepName = stepName,
                 InputParameters = inputParameters
-            });
+            }, context.WorkflowStepStartedCallbackUrl);
         }
 
         public Task NotifyWorkflowStepCompleted(string stepName, EWStepStatisticsRecord statistics)
         {
             if (context.ExecutionKind == WorkflowExecutionContextKind.Summarization)
             {
-                return PostIfConfiguredAsync(context.WorkflowStepCompletedCallbackUrl, new SummarizationStepCompletedCallbackPayload
+                return PublishAsync("workflowStepCompleted", new SummarizationStepCompletedCallbackPayload
                 {
                     RequestId = context.RequestId,
                     StepName = stepName,
                     Elapsed = statistics.Elapsed,
                     IsAgentic = statistics.IsAgentic,
                     ParametersDiff = statistics.ParametersDiff.ToList()
-                });
+                }, context.WorkflowStepCompletedCallbackUrl);
             }
 
-            return PostIfConfiguredAsync(context.WorkflowStepCompletedCallbackUrl, new WorkflowStepCompletedCallbackPayload
+            return PublishAsync("workflowStepCompleted", new WorkflowStepCompletedCallbackPayload
             {
                 RequestId = context.RequestId,
                 StepName = stepName,
                 Elapsed = statistics.Elapsed,
                 IsAgentic = statistics.IsAgentic,
                 ParametersDiff = statistics.ParametersDiff.ToList()
-            });
+            }, context.WorkflowStepCompletedCallbackUrl);
         }
 
-        private Task PostIfConfiguredAsync<TPayload>(string? callbackUrl, TPayload payload)
+        private Task PublishAsync<TPayload>(string eventName, TPayload payload, string? callbackUrl)
         {
+            if (context.StreamEventSink is not null)
+            {
+                return context.StreamEventSink(eventName, payload!, context.StreamCancellationToken);
+            }
+
             if (string.IsNullOrWhiteSpace(callbackUrl))
             {
                 return Task.CompletedTask;

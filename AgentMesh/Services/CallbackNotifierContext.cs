@@ -12,6 +12,10 @@ public sealed class CallbackNotifierContext
 
     public WorkflowExecutionContextKind ExecutionKind { get; set; } = WorkflowExecutionContextKind.Chat;
 
+    public Func<string, object, CancellationToken, Task>? StreamEventSink { get; set; }
+
+    public CancellationToken StreamCancellationToken { get; set; }
+
     public string? WorkflowStartedCallbackUrl { get; set; }
 
     public string? WorkflowStepStartedCallbackUrl { get; set; }

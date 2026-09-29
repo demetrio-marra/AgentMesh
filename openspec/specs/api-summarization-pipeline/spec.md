@@ -57,14 +57,14 @@ Summarization endpoints SHALL require the configured API key and SHALL document 
 - **THEN** the API rejects the request with the existing authentication failure response
 
 ### Requirement: CLI SHALL use API summarization for local context reduction
-The CLI SHALL use the authenticated asynchronous summarization endpoint for both explicit and automatic summarization and SHALL apply the returned content to its local conversation only after a successful completion callback.
+The CLI SHALL use the authenticated streamed summarization endpoint for both explicit and automatic summarization and SHALL apply the returned content to its local conversation only after a successful terminal completion event.
 
 #### Scenario: Explicit summarization succeeds
-- **WHEN** the user requests summarization and the API completes it successfully
+- **WHEN** the user requests summarization and the stream completes successfully
 - **THEN** the CLI replaces the selected older messages with the returned summary message and preserves the configured number of newer messages
 
 #### Scenario: Summarization fails
-- **WHEN** the API posts a summarization error callback
+- **WHEN** the stream delivers an error event, closes without a completion event, or is canceled
 - **THEN** the CLI reports the error and preserves the pre-summarization conversation
 
 ### Requirement: Summarization documentation SHALL distinguish host and framework roles
