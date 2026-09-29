@@ -1,3 +1,5 @@
+using System.Text.Json;
+using AgentMesh.Runtime.Models;
 using AgentMesh.Runtime.Models.Api;
 using AgentMesh.Authentication;
 using AgentMesh.Exceptions;
@@ -14,9 +16,10 @@ namespace AgentMesh.Controllers
     [ApiController]
     [Route("api")]
     [Authorize(AuthenticationSchemes = ApiKeyAuthenticationDefaults.SchemeName)]
-    public sealed class RequestsController(
-        IAppInstance appInstance) : ControllerBase
+    public sealed class RequestsController(IAppInstance appInstance) : ControllerBase
     {
+        private static readonly JsonSerializerOptions StreamJsonOptions = new(JsonSerializerDefaults.Web);
+
         /// <summary>
         /// Process a chat request using the default pipeline.
         /// </summary>
@@ -37,6 +40,21 @@ namespace AgentMesh.Controllers
         public async Task<ActionResult<ProcessRequestApiOutput>> PostDefault([FromBody] ProcessRequestApiInput request, CancellationToken cancellationToken)
         {
             return await ExecuteRequest(request.Message, request.Conversation, cancellationToken);
+        }
+
+        /// <summary>
+        /// Process a chat request and stream workflow progress and the terminal result as server-sent events.
+        /// </summary>
+        [Tags("Requests")]
+        [HttpPost("requests/stream")]
+        [Produces("text/event-stream")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public Task<IActionResult> PostDefaultStream([FromBody] ProcessRequestApiInput request, CancellationToken cancellationToken)
+        {
+            return StreamChatAsync(request, cancellationToken);
         }
 
         /// <summary>
@@ -96,6 +114,21 @@ namespace AgentMesh.Controllers
                     Detail = ex.Detail
                 });
             }
+        }
+
+        /// <summary>
+        /// Summarize conversation messages and stream workflow progress and the terminal result as server-sent events.
+        /// </summary>
+        [Tags("Summarization")]
+        [HttpPost("summarize/stream")]
+        [Produces("text/event-stream")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public Task<IActionResult> PostSummarizeStream([FromBody] SummarizationApiInput request, CancellationToken cancellationToken)
+        {
+            return StreamSummarizationAsync(request, cancellationToken);
         }
 
         /// <summary>
@@ -180,6 +213,117 @@ namespace AgentMesh.Controllers
 
                 return StatusCode(ex.StatusCode, problemDetails);
             }
+        }
+
+        private async Task<IActionResult> StreamChatAsync(ProcessRequestApiInput request, CancellationToken cancellationToken)
+        {
+            Guid requestId = Guid.Empty;
+            var terminalSent = false;
+
+            try
+            {
+                var result = await appInstance.ProcessRequestStreamAsync(
+                    request.Message,
+                    request.Conversation,
+                    id => StartStreamAsync(id, cancellationToken, value => requestId = value),
+                    (eventName, payload, token) => WriteStreamEventAsync(eventName, payload, token),
+                    cancellationToken);
+
+                await WriteTerminalAsync("workflowCompleted", new WorkflowCompletedCallbackPayload
+                {
+                    RequestId = requestId,
+                    Result = result
+                }, cancellationToken, () => terminalSent = true);
+            }
+            catch (PipelineRoutingException ex) when (!Response.HasStarted)
+            {
+                return StatusCode(ex.StatusCode, new ProblemDetails
+                {
+                    Status = ex.StatusCode,
+                    Title = ex.Title,
+                    Detail = ex.Detail
+                });
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+            }
+            catch (Exception ex) when (Response.HasStarted && !cancellationToken.IsCancellationRequested && !terminalSent)
+            {
+                await WriteTerminalAsync("workflowError", new WorkflowErrorCallbackPayload
+                {
+                    RequestId = requestId,
+                    ErrorMessage = ex.Message
+                }, cancellationToken, () => terminalSent = true);
+            }
+
+            return new EmptyResult();
+        }
+
+        private async Task<IActionResult> StreamSummarizationAsync(SummarizationApiInput request, CancellationToken cancellationToken)
+        {
+            Guid requestId = Guid.Empty;
+            var terminalSent = false;
+
+            try
+            {
+                var result = await appInstance.SummarizeStreamAsync(
+                    request.SummarizationLanguage,
+                    request.Conversation!,
+                    id => StartStreamAsync(id, cancellationToken, value => requestId = value),
+                    (eventName, payload, token) => WriteStreamEventAsync(eventName, payload, token),
+                    cancellationToken);
+
+                await WriteTerminalAsync("workflowCompleted", new SummarizationCompletedCallbackPayload
+                {
+                    RequestId = requestId,
+                    SummarizedContent = result.SummarizedContent,
+                    SummarizedContentDatetime = result.SummarizedContentDatetime
+                }, cancellationToken, () => terminalSent = true);
+            }
+            catch (PipelineRoutingException ex) when (!Response.HasStarted)
+            {
+                return StatusCode(ex.StatusCode, new ProblemDetails
+                {
+                    Status = ex.StatusCode,
+                    Title = ex.Title,
+                    Detail = ex.Detail
+                });
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+            }
+            catch (Exception ex) when (Response.HasStarted && !cancellationToken.IsCancellationRequested && !terminalSent)
+            {
+                await WriteTerminalAsync("workflowError", new WorkflowErrorCallbackPayload
+                {
+                    RequestId = requestId,
+                    ErrorMessage = ex.Message
+                }, cancellationToken, () => terminalSent = true);
+            }
+
+            return new EmptyResult();
+        }
+
+        private async Task StartStreamAsync(Guid requestId, CancellationToken cancellationToken, Action<Guid> setRequestId)
+        {
+            setRequestId(requestId);
+            Response.ContentType = "text/event-stream; charset=utf-8";
+            Response.Headers.CacheControl = "no-cache";
+            await Response.StartAsync(cancellationToken);
+            await Response.Body.FlushAsync(cancellationToken);
+        }
+
+        private async Task WriteStreamEventAsync(string eventName, object payload, CancellationToken cancellationToken)
+        {
+            var json = JsonSerializer.Serialize(payload, StreamJsonOptions);
+            await Response.WriteAsync($"event: {eventName}\ndata: {json}\n\n", cancellationToken);
+            await Response.Body.FlushAsync(cancellationToken);
+        }
+
+        private async Task WriteTerminalAsync(string eventName, object payload, CancellationToken cancellationToken, Action markSent)
+        {
+            await WriteStreamEventAsync(eventName, payload, cancellationToken);
+            markSent();
         }
     }
 }

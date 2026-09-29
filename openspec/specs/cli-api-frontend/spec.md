@@ -17,40 +17,40 @@ The CLI SHALL submit chat and summarization work to the configured API using HTT
 - **THEN** the CLI reports the failure and does not mutate its conversation state
 
 ### Requirement: CLI SHALL own conversation state
-The CLI SHALL keep the current conversation messages and context counters in memory, serialize the messages into API requests, and update them only after successful completion callbacks.
+The CLI SHALL keep the current conversation messages and context counters in memory, serialize the messages into API requests, and update them only after a successful terminal streamed result.
 
 #### Scenario: Completed chat request updates context
-- **WHEN** a chat completion callback belongs to an active CLI request
+- **WHEN** a chat stream delivers a successful terminal workflow result
 - **THEN** the CLI appends the submitted user message and returned assistant message to its local conversation
 
 #### Scenario: Dropped request completion arrives
 - **WHEN** a callback belongs to a request ID no longer tracked by the CLI
 - **THEN** the CLI ignores the callback and does not mutate conversation state or print a response
 
-### Requirement: CLI SHALL expose callback URLs for asynchronous work
-The CLI SHALL listen for API callback POSTs and SHALL send fully formed callback URLs based on a configured callback base URL. The API SHALL receive those URLs unchanged.
+### Requirement: CLI SHALL consume streamed workflow progress
+The CLI SHALL use only the authenticated chat and summarization streaming endpoints for workflow requests, SHALL display each progress event using its existing console progress behavior when it arrives, and SHALL NOT host an HTTP callback listener or send callback URLs.
 
-#### Scenario: Default callback base URL
-- **WHEN** no callback base URL is configured
-- **THEN** the CLI uses its localhost callback base URL
+#### Scenario: Progress arrives during chat
+- **WHEN** the chat stream sends workflow-started, step-started, and step-completed events
+- **THEN** the CLI displays the progress before the final answer is returned
 
-#### Scenario: Progress callback is received
-- **WHEN** the API posts a workflow-started, step-started, or step-completed callback for an active request
-- **THEN** the CLI invokes the existing console progress notification behavior
+#### Scenario: Progress arrives during summarization
+- **WHEN** either explicit or automatic summarization sends step progress events
+- **THEN** the CLI displays those events while waiting for the summary
 
 ### Requirement: CLI cancellation SHALL drop local request tracking
-When the user cancels an accepted asynchronous request, the CLI SHALL remove its request ID from local tracking without sending a cancellation request to the API.
+When the user cancels an in-progress chat or summarization request, the CLI SHALL cancel the outgoing HTTP request, stop processing its stream, and retain the pre-request conversation state.
 
 #### Scenario: User cancels an active request
-- **WHEN** Ctrl+C is pressed after the API request ID has been registered locally
-- **THEN** the CLI stops waiting for that request, removes its request ID, and reports the request as canceled
+- **WHEN** Ctrl+C is pressed during an active stream
+- **THEN** the CLI stops waiting for the server, reports cancellation, and does not apply a late terminal result
 
 #### Scenario: API completes a locally canceled request
-- **WHEN** the API later posts callbacks for a locally canceled request
-- **THEN** the CLI silently returns successful callback responses without displaying or applying the result
+- **WHEN** a terminal event races with local cancellation
+- **THEN** the CLI ignores the result after cancellation and leaves its conversation unchanged
 
 ### Requirement: CLI SHALL automatically summarize oversized context
-After a successful chat completion, the CLI SHALL request asynchronous summarization when the local token count exceeds `SummaryTokenThreshold` and the local message count is greater than `NumMessageToPreseve`.
+After a successful chat completion, the CLI SHALL request streamed summarization when the local token count exceeds `SummaryTokenThreshold` and the local message count is greater than `NumMessageToPreseve`.
 
 #### Scenario: Both summarization thresholds are exceeded
 - **WHEN** a chat completion leaves both configured conditions true

@@ -15,7 +15,7 @@ AgentMesh puts the **pipeline**, not an individual agent or code step, at the ce
 - **Mostly declarative steps**: Many steps can be described by their parameter dependencies and execution behavior without bespoke wiring for every data transfer.
 - **Flexible serialization**: Agent inputs can use a custom serializer instead of assuming JSON, and parameter display serializers can truncate, summarize, or omit large values from progress and diagnostic output.
 - **Token and cost accounting**: Agent execution statistics include input and output tokens. Configure per-million-token prices for token-based costs or an optional hourly rate for time-based pricing, and AgentMesh calculates execution totals.
-- **Lean REST API**: Expose a plugin pipeline through authenticated `POST /api/requests` and `POST /api/requests/async` endpoints, with optional workflow callbacks. `POST /api/summarize` and `POST /api/summarize/async` can condense conversation context when it becomes too large.
+- **Lean REST API**: Expose a plugin pipeline through authenticated `POST /api/requests` and `POST /api/requests/async` endpoints, with optional workflow callbacks. The streamed `POST /api/requests/stream` and `POST /api/summarize/stream` endpoints deliver progress and the terminal result over one authenticated SSE response. `POST /api/summarize` and `POST /api/summarize/async` remain available for other clients.
 - **Service connectors for custom pipelines**: Developers can use connectors for [OpenAI ChatCompletions-compatible endpoints](https://platform.openai.com/docs/api-reference/chat), [Mem0](https://mem0.ai/) , [LightRAG](https://github.com/hkuds/lightrag) , reranker-compatible endpoints such as [Cohere](https://cohere.com/) , and [JSCodeSandbox](https://github.com/demetrio-marra/JSCodeSandbox) for JavaScript code execution .
 - **Container and Kubernetes ready**: Plugin applications own their Dockerfiles and deployment manifests, while AgentMesh Runtime provides the plugin-facing host model and deployment guidance for running one pipeline service per deployment.
 
@@ -77,6 +77,39 @@ System prompt paths are resolved from the plugin output directory. Place prompt 
 See the [AMCodePipeline README](https://github.com/demetrio-marra/AMCodePipeline#run-locally) for current local development and startup instructions.
 
 Swagger is available at `/swagger`. The API key is read from the plugin configuration, and the existing request, summarization, callback, and authentication HTTP contracts remain unchanged.
+
+## Streaming Requests
+
+The CLI uses the outbound-only streaming endpoints, so it does not listen for callbacks or send callback URLs. Configure `AgentMeshCLI/appsettings.json` with the API base URL, API key, and API key header name:
+
+```json
+{
+  "Api": {
+    "BaseUrl": "http://localhost:5000",
+    "ApiKey": "<your api key here>",
+    "HeaderName": "X-Api-Key"
+  }
+}
+```
+
+Both endpoints accept the same request bodies as their synchronous counterparts:
+
+- `POST /api/requests/stream`: `{ "message": "...", "conversation": [...] }`
+- `POST /api/summarize/stream`: `{ "summarizationLanguage": "...", "conversation": [...] }`
+
+Responses use `text/event-stream; charset=utf-8`. Each frame has one event name and one JSON data line. Every payload contains the same `requestId` for that stream. Lifecycle event names are `workflowStarted`, `workflowStepStarted`, `workflowStepCompleted`, and exactly one terminal `workflowCompleted` or `workflowError` event. Chat completion data contains `result`; summarization completion data contains `summarizedContent` and `summarizedContentDatetime`.
+
+```text
+event: workflowStepCompleted
+data: {"requestId":"...","stepName":"...","elapsed":"00:00:01","isAgentic":true,"parametersDiff":[]}
+
+event: workflowCompleted
+data: {"requestId":"...","result":{"message":"..."}}
+```
+
+Authentication, request validation, and pipeline routing failures are returned as normal HTTP errors before the SSE response starts. Failures after streaming begins are sent as one `workflowError` event. Existing synchronous and callback-based asynchronous endpoints remain available and keep their callback behavior.
+
+Streaming deployments must allow long-lived, unbuffered responses. Configure ingress and reverse proxies to flush SSE frames promptly and use an idle timeout longer than the longest expected workflow step. The server flushes after every event but does not add heartbeat events.
 
 ## Packaging
 

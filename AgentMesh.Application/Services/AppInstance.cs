@@ -60,6 +60,21 @@ namespace AgentMesh.Application.Services
             return await ExecuteChatRequestAsync(pipeline, message, conversation, cancellationToken);
         }
 
+        public async Task<WorkflowResult> ProcessRequestStreamAsync(
+            string message,
+            IEnumerable<ContextMessage>? conversation,
+            Func<Guid, Task> streamReady,
+            Func<string, object, CancellationToken, Task> streamEventSink,
+            CancellationToken cancellationToken = default)
+        {
+            using var executionScope = serviceProvider.CreateScope();
+            var pipeline = ResolveChatPipeline(executionScope.ServiceProvider);
+            var requestId = Guid.NewGuid();
+            ConfigureStreamContext(executionScope.ServiceProvider, requestId, WorkflowExecutionContextKind.Chat, streamEventSink, cancellationToken);
+            await streamReady(requestId);
+            return await ExecuteChatRequestAsync(pipeline, message, conversation, cancellationToken);
+        }
+
         /// <summary>
         /// Resolves the target chat pipeline and generates a request id synchronously,
         /// then executes the workflow in the background with progress/terminal callbacks.
@@ -112,6 +127,21 @@ namespace AgentMesh.Application.Services
         {
             using var executionScope = serviceProvider.CreateScope();
             var pipeline = ResolveSummarizationPipeline(executionScope.ServiceProvider);
+            return await ExecuteSummarizationAsync(pipeline, summarizationLanguage, conversation, cancellationToken);
+        }
+
+        public async Task<SummarizationResult> SummarizeStreamAsync(
+            string summarizationLanguage,
+            IEnumerable<ContextMessage> conversation,
+            Func<Guid, Task> streamReady,
+            Func<string, object, CancellationToken, Task> streamEventSink,
+            CancellationToken cancellationToken = default)
+        {
+            using var executionScope = serviceProvider.CreateScope();
+            var pipeline = ResolveSummarizationPipeline(executionScope.ServiceProvider);
+            var requestId = Guid.NewGuid();
+            ConfigureStreamContext(executionScope.ServiceProvider, requestId, WorkflowExecutionContextKind.Summarization, streamEventSink, cancellationToken);
+            await streamReady(requestId);
             return await ExecuteSummarizationAsync(pipeline, summarizationLanguage, conversation, cancellationToken);
         }
 
@@ -337,6 +367,20 @@ namespace AgentMesh.Application.Services
                 1 => pipelines[0],
                 _ => throw PipelineRoutingException.PluginConfigurationInvalid()
             };
+        }
+
+        private static void ConfigureStreamContext(
+            IServiceProvider scopedServiceProvider,
+            Guid requestId,
+            WorkflowExecutionContextKind executionKind,
+            Func<string, object, CancellationToken, Task> streamEventSink,
+            CancellationToken cancellationToken)
+        {
+            var callbackContext = scopedServiceProvider.GetRequiredService<CallbackNotifierContext>();
+            callbackContext.RequestId = requestId;
+            callbackContext.ExecutionKind = executionKind;
+            callbackContext.StreamEventSink = streamEventSink;
+            callbackContext.StreamCancellationToken = cancellationToken;
         }
 
         private async Task PostCallbackAsync<TPayload>(string callbackUrl, TPayload payload)

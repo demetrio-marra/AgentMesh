@@ -10,7 +10,7 @@
     <AssemblyName>AgentMesh.Runtime</AssemblyName>
     <RootNamespace>AgentMesh.Runtime</RootNamespace>
     <PackageId>AgentMesh.Runtime</PackageId>
-    <Version>2.0.9</Version>
+    <Version>2.1.1</Version>
     <Authors>AgentMesh</Authors>
     <Description>Plugin-facing AgentMesh runtime and HTTP API host services.</Description>
     <PackageTags>ai;orchestration;pipeline;plugins;runtime;http</PackageTags>
@@ -23,11 +23,9 @@
     </TargetsForTfmSpecificBuildOutput>
   </PropertyGroup>
 
-  <Target Name="IncludeProjectReferencesInPackage"
-          DependsOnTargets="BuildOnlySettings;ResolveReferences">
+  <Target Name="IncludeProjectReferencesInPackage" DependsOnTargets="BuildOnlySettings;ResolveReferences">
     <ItemGroup>
-      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)"
-                            Condition="'%(ReferenceCopyLocalPaths.ReferenceSourceTarget)' == 'ProjectReference'">
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)" Condition="'%(ReferenceCopyLocalPaths.ReferenceSourceTarget)' == 'ProjectReference'">
         <FinalOutputPath>%(ReferenceCopyLocalPaths.FullPath)</FinalOutputPath>
         <TargetPath>%(ReferenceCopyLocalPaths.Filename)%(ReferenceCopyLocalPaths.Extension)</TargetPath>
       </BuildOutputInPackage>
