@@ -44,6 +44,9 @@ dd { margin: 0; overflow-wrap: anywhere; }
 .message-user { justify-self: end; background: var(--soft-green); }
 .message-role { color: var(--muted); font-family: "Trebuchet MS", sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; }
 .message-body { line-height: 1.55; min-width: 0; }
+.message-actions { display: flex; justify-content: flex-start; min-height: 24px; margin-top: 2px; }
+.message-copy { border: 0; border-radius: 4px; padding: 3px 6px; background: transparent; color: var(--muted); font-family: "Trebuchet MS", sans-serif; font-size: 12px; }
+.message-copy:hover, .message-copy:focus-visible { background: var(--soft-green); color: var(--teal-dark); }
 .message-body > :first-child { margin-top: 0; }
 .message-body > :last-child { margin-bottom: 0; }
 .message-body pre { max-width: 100%; overflow: auto; padding: 12px; background: #202c28; color: #eef3ef; border-radius: 4px; }

@@ -29,6 +29,17 @@
         transcript.scrollTop = transcript.scrollHeight;
     }
 
+    function createCopyButton(text) {
+        const button = document.createElement("button");
+        button.className = "message-copy";
+        button.type = "button";
+        button.title = "Copy message";
+        button.setAttribute("aria-label", "Copy message");
+        button.textContent = "Copy";
+        button.dataset.copyText = text;
+        return button;
+    }
+
     function renderMessages(messages) {
         hasConversationContent = messages.length > 0;
         transcript.replaceChildren();
@@ -50,7 +61,10 @@
             const body = document.createElement("div");
             body.className = "message-body";
             body.innerHTML = DOMPurify.sanitize(marked.parse(messageItem.text));
-            article.append(role, body);
+            const actions = document.createElement("div");
+            actions.className = "message-actions";
+            actions.append(createCopyButton(messageItem.text));
+            article.append(role, body, actions);
             transcript.append(article);
         }
         scrollTranscriptToBottom();
@@ -68,7 +82,10 @@
         const body = document.createElement("div");
         body.className = "message-body";
         body.textContent = text;
-        pending.append(role, body);
+        const actions = document.createElement("div");
+        actions.className = "message-actions";
+        actions.append(createCopyButton(text));
+        pending.append(role, body, actions);
         transcript.append(pending);
         hasConversationContent = true;
         scrollTranscriptToBottom();
@@ -95,7 +112,7 @@
         configurationToggle.setAttribute("aria-expanded", String(isVisible));
     }
 
-    setConfigurationVisible(window.matchMedia("(min-width: 761px)").matches);
+    setConfigurationVisible(false);
 
     connection.on("State", state => {
         renderMessages(state.messages);
@@ -132,6 +149,24 @@
         if (event.key !== "Enter" || event.shiftKey || event.ctrlKey || event.isComposing || event.keyCode === 229) return;
         event.preventDefault();
         composer.requestSubmit();
+    });
+    transcript.addEventListener("click", async event => {
+        const copyButton = event.target.closest(".message-copy");
+        if (!copyButton) return;
+
+        try {
+            await navigator.clipboard.writeText(copyButton.dataset.copyText);
+            copyButton.textContent = "Copied";
+            copyButton.title = "Copied";
+            copyButton.setAttribute("aria-label", "Message copied");
+            window.setTimeout(() => {
+                copyButton.textContent = "Copy";
+                copyButton.title = "Copy message";
+                copyButton.setAttribute("aria-label", "Copy message");
+            }, 1400);
+        } catch {
+            showError("Unable to copy the message.");
+        }
     });
     stop.addEventListener("click", () => connection.invoke("Stop", chatId));
     newChat.addEventListener("click", () => {
