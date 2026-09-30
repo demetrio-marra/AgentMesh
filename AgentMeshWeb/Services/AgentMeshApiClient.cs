@@ -75,13 +75,13 @@ public sealed class AgentMeshApiClient(HttpClient httpClient) : IAgentMeshApiCli
                 switch (eventName)
                 {
                     case "workflowStarted":
-                        await onProgress(new WorkflowProgress("started", "Workflow started."));
+                        await onProgress(new WorkflowProgress("started", "Workflow started.", eventName, data));
                         break;
                     case "workflowStepStarted":
-                        await onProgress(new WorkflowProgress("step-started", $"Running {GetRequiredString(payload, "stepName")}."));
+                        await onProgress(new WorkflowProgress("step-started", $"Running {GetRequiredString(payload, "stepName")}.", eventName, data));
                         break;
                     case "workflowStepCompleted":
-                        await onProgress(new WorkflowProgress("step-completed", $"Completed {GetRequiredString(payload, "stepName")}."));
+                        await onProgress(new WorkflowProgress("step-completed", $"Completed {GetRequiredString(payload, "stepName")}.", eventName, data));
                         break;
                     case "workflowCompleted":
                         return parseCompletion(payload);

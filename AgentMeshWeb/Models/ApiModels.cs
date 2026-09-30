@@ -47,5 +47,5 @@ public sealed class AgentConfigurationSummaryApiOutput
     public double Temperature { get; init; }
 }
 
-public sealed record WorkflowProgress(string Kind, string Message);
+public sealed record WorkflowProgress(string Kind, string Message, string EventType, string RawData);
 public sealed record SummarizationResult(string Content, DateTime CreatedAt);

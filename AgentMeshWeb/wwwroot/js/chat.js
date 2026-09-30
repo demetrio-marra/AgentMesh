@@ -16,7 +16,12 @@
     const configurationRail = document.getElementById("configuration-rail");
     const configurationToggle = document.getElementById("configuration-toggle");
     const configurationClose = document.getElementById("configuration-close");
+    const diagnosticsModal = document.getElementById("diagnostics-modal");
+    const diagnosticsOutput = document.getElementById("diagnostics-output");
+    const diagnosticsToggle = document.getElementById("diagnostics-toggle");
+    const diagnosticsClose = document.getElementById("diagnostics-close");
     const discardWarning = "The conversation will be lost. Continue?";
+    const diagnosticsChunks = [];
     let isActive = false;
     let hasConversationContent = false;
 
@@ -112,6 +117,12 @@
         configurationToggle.setAttribute("aria-expanded", String(isVisible));
     }
 
+    function setDiagnosticsVisible(isVisible) {
+        diagnosticsModal.hidden = !isVisible;
+        diagnosticsToggle.setAttribute("aria-expanded", String(isVisible));
+        if (isVisible) diagnosticsOutput.focus();
+    }
+
     setConfigurationVisible(false);
 
     connection.on("State", state => {
@@ -121,6 +132,11 @@
     });
     connection.on("Progress", event => {
         progress.textContent = event.message;
+        if (event.rawData) {
+            diagnosticsChunks.push(`{"eventType":${JSON.stringify(event.eventType)},"payload":${event.rawData}}`);
+            diagnosticsOutput.value = diagnosticsChunks.join("\n\n");
+            diagnosticsOutput.scrollTop = diagnosticsOutput.scrollHeight;
+        }
         showError("");
     });
     connection.on("Operation", setOperation);
@@ -180,6 +196,8 @@
     });
     configurationToggle.addEventListener("click", () => setConfigurationVisible(!configurationRail.classList.contains("is-open")));
     configurationClose.addEventListener("click", () => setConfigurationVisible(false));
+    diagnosticsToggle.addEventListener("click", () => setDiagnosticsVisible(diagnosticsModal.hidden));
+    diagnosticsClose.addEventListener("click", () => setDiagnosticsVisible(false));
 
     connection.start()
         .then(() => connection.invoke("Initialize", chatId))
