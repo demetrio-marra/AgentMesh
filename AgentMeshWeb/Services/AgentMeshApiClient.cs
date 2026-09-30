@@ -84,6 +84,7 @@ public sealed class AgentMeshApiClient(HttpClient httpClient) : IAgentMeshApiCli
                         await onProgress(new WorkflowProgress("step-completed", $"Completed {GetRequiredString(payload, "stepName")}.", eventName, data));
                         break;
                     case "workflowCompleted":
+                        await onProgress(new WorkflowProgress("completed", "Workflow completed.", eventName, data));
                         return parseCompletion(payload);
                     case "workflowError":
                         var errorMessage = payload.GetProperty("errorMessage").GetString() ?? "The API workflow failed.";

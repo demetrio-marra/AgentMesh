@@ -26,9 +26,42 @@ public sealed class SummarizationApiInput
 public sealed class WorkflowResult
 {
     public string Message { get; init; } = string.Empty;
+    public IReadOnlyList<EWStepStatisticsRecord> MainPipelineStepsData { get; init; } = [];
+    public IReadOnlyList<AgentExecutionCost> AgentsCostData { get; init; } = [];
     public int CountOfMessages { get; init; }
     public int CountOfTokens { get; init; }
     public decimal CumulatedCost { get; init; }
+}
+
+public sealed class EWStepStatisticsRecord
+{
+    public string StepName { get; init; } = string.Empty;
+    public DateTime StartedOnUtc { get; init; }
+    public DateTime CompletedOnUtc { get; init; }
+    public IReadOnlyList<EWDisplayParameterRecord> ParametersBefore { get; init; } = [];
+    public IReadOnlyList<EWDisplayParameterRecord> InputParameters { get; init; } = [];
+    public IReadOnlyList<EWDisplayParameterRecord> ParametersAfter { get; init; } = [];
+    public bool IsAgentic { get; init; }
+    public string? AgentName { get; init; }
+    public int? InputTokens { get; init; }
+    public int? OutputTokens { get; init; }
+}
+
+public sealed class EWDisplayParameterRecord
+{
+    public string Name { get; init; } = string.Empty;
+    public string? Value { get; init; }
+}
+
+public sealed class AgentExecutionCost
+{
+    public string AgentName { get; init; } = string.Empty;
+    public decimal CostPerMillionInputTokens { get; init; }
+    public decimal CostPerMillionOutputTokens { get; init; }
+    public int ConsumedInputTokens { get; init; }
+    public int ConsumedOutputTokens { get; init; }
+    public decimal? CostPerHour { get; init; }
+    public TimeSpan Elapsed { get; init; }
 }
 
 public sealed class ConfigurationSummaryApiOutput

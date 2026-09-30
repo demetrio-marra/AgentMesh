@@ -67,8 +67,12 @@
         </div>
         <div class="diagnostics-tabs">
             <div class="diagnostics-tablist" role="tablist" aria-label="Diagnostics views">
-                <button id="diagnostics-steps-tab" class="diagnostics-tab is-selected" type="button" role="tab" aria-selected="true" aria-controls="diagnostics-steps-panel">Steps details</button>
+                <button id="diagnostics-summary-tab" class="diagnostics-tab is-selected" type="button" role="tab" aria-selected="true" aria-controls="diagnostics-summary-panel">Summary</button>
+                <button id="diagnostics-steps-tab" class="diagnostics-tab" type="button" role="tab" aria-selected="false" aria-controls="diagnostics-steps-panel" tabindex="-1">Steps details</button>
                 <button id="diagnostics-raw-tab" class="diagnostics-tab" type="button" role="tab" aria-selected="false" aria-controls="diagnostics-raw-panel" tabindex="-1">Raw data</button>
+            </div>
+            <div id="diagnostics-summary-panel" class="diagnostics-tabpanel diagnostics-summary-panel" role="tabpanel" aria-labelledby="diagnostics-summary-tab">
+                <div id="diagnostics-summary" class="diagnostics-summary"></div>
             </div>
             <div id="diagnostics-steps-panel" class="diagnostics-tabpanel diagnostics-steps-panel" role="tabpanel" aria-labelledby="diagnostics-steps-tab">
                 <div id="diagnostics-step-list" class="diagnostics-step-list" aria-label="Workflow steps"></div>

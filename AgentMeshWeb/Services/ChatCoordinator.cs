@@ -70,6 +70,8 @@ public sealed class ChatCoordinator(
                 return;
             }
 
+            await hubContext.Clients.Group(GroupName(operation.ChatId)).SendAsync("WorkflowSummary", result, operation.CancellationToken);
+
             var completed = new ChatContextSnapshot(
                 context.Revision,
                 [.. context.Messages, new ContextMessage(ChatMessageRole.User, DateTime.UtcNow, message), new ContextMessage(ChatMessageRole.Assistant, DateTime.UtcNow, result.Message)],

@@ -49,6 +49,19 @@ dd { margin: 0; overflow-wrap: anywhere; }
 .diagnostics-tab { border: 0; border-bottom: 2px solid transparent; padding: 8px 10px; background: transparent; color: var(--muted); }
 .diagnostics-tab.is-selected { border-bottom-color: var(--teal); color: var(--teal-dark); font-weight: 700; }
 .diagnostics-tabpanel[hidden] { display: none; }
+.diagnostics-summary-panel { min-height: 0; overflow: auto; }
+.diagnostics-summary { min-width: 760px; }
+.diagnostics-summary-empty { margin: 0; color: var(--muted); }
+.diagnostics-summary-table-wrap { overflow: auto; border: 1px solid var(--line); }
+.diagnostics-summary-table { width: 100%; border-collapse: collapse; font-family: "Trebuchet MS", sans-serif; font-size: 12px; }
+.diagnostics-summary-table caption { padding: 10px; text-align: left; color: var(--muted); font-family: Georgia, "Times New Roman", serif; font-size: 16px; font-weight: 700; }
+.diagnostics-summary-table th, .diagnostics-summary-table td { padding: 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.diagnostics-summary-table th:first-child, .diagnostics-summary-table td:first-child { text-align: left; }
+.diagnostics-summary-table thead th { background: #eff3e9; color: var(--muted); font-size: 11px; text-transform: uppercase; }
+.diagnostics-summary-table tfoot td { background: var(--soft-green); font-weight: 700; }
+.diagnostics-summary-hourly { margin-top: 18px; }
+.diagnostics-summary-metrics { display: flex; flex-wrap: wrap; gap: 16px 28px; margin-top: 16px; color: var(--muted); font-family: "Trebuchet MS", sans-serif; font-size: 13px; }
+.diagnostics-summary-metrics strong { color: var(--ink); }
 .diagnostics-steps-panel { display: grid; grid-template-columns: minmax(180px, .32fr) minmax(0, 1fr); gap: 16px; }
 .diagnostics-step-list, .diagnostics-step-details, .diagnostics-parameter-grid { min-height: 0; overflow: auto; }
 .diagnostics-step-list { display: grid; align-content: start; gap: 6px; }
@@ -101,6 +114,7 @@ textarea:focus { outline: 2px solid #6aa99f; outline-offset: 1px; }
     .configuration-rail.is-open { transform: translateX(0); }
     .diagnostics-modal { padding: 5vh 5vw; }
     .diagnostics-dialog { width: 90vw; height: 86vh; padding: 14px; }
+    .diagnostics-summary-panel { overflow-x: auto; }
     .diagnostics-steps-panel { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(120px, .35fr) minmax(0, 1fr); gap: 10px; }
     .diagnostics-step-list { display: flex; overflow-x: auto; overflow-y: hidden; }
     .diagnostics-step { min-width: 180px; align-content: start; }
