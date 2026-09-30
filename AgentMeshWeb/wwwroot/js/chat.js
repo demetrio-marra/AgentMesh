@@ -16,20 +16,28 @@
     const configurationRail = document.getElementById("configuration-rail");
     const configurationToggle = document.getElementById("configuration-toggle");
     const configurationClose = document.getElementById("configuration-close");
+    const discardWarning = "The conversation will be lost. Continue?";
     let isActive = false;
+    let hasConversationContent = false;
 
     const connection = new signalR.HubConnectionBuilder()
         .withUrl("/hubs/chat")
         .withAutomaticReconnect()
         .build();
 
+    function scrollTranscriptToBottom() {
+        transcript.scrollTop = transcript.scrollHeight;
+    }
+
     function renderMessages(messages) {
+        hasConversationContent = messages.length > 0;
         transcript.replaceChildren();
         if (!messages.length) {
             const empty = document.createElement("div");
             empty.className = "empty-state";
-            empty.textContent = "Start a conversation.";
+            empty.textContent = "Conversation is empty";
             transcript.append(empty);
+            scrollTranscriptToBottom();
             return;
         }
 
@@ -45,7 +53,7 @@
             article.append(role, body);
             transcript.append(article);
         }
-        transcript.scrollTop = transcript.scrollHeight;
+        scrollTranscriptToBottom();
     }
 
     function renderPending(text) {
@@ -62,7 +70,8 @@
         body.textContent = text;
         pending.append(role, body);
         transcript.append(pending);
-        transcript.scrollTop = transcript.scrollHeight;
+        hasConversationContent = true;
+        scrollTranscriptToBottom();
     }
 
     function setOperation(state) {
@@ -91,7 +100,7 @@
     connection.on("State", state => {
         renderMessages(state.messages);
         tokenCount.textContent = `${state.tokenCount} tokens`;
-        costCount.textContent = `$${Number(state.cumulatedCost).toFixed(4)}`;
+        costCount.textContent = `$${Number(state.cumulatedCost).toFixed(2)}`;
     });
     connection.on("Progress", event => {
         progress.textContent = event.message;
@@ -119,8 +128,21 @@
     message.addEventListener("input", () => {
         send.disabled = isActive || !message.value.trim();
     });
+    message.addEventListener("keydown", event => {
+        if (event.key !== "Enter" || event.shiftKey || event.ctrlKey || event.isComposing || event.keyCode === 229) return;
+        event.preventDefault();
+        composer.requestSubmit();
+    });
     stop.addEventListener("click", () => connection.invoke("Stop", chatId));
-    newChat.addEventListener("click", () => connection.invoke("NewChat", chatId));
+    newChat.addEventListener("click", () => {
+        if (hasConversationContent && !window.confirm(discardWarning)) return;
+        connection.invoke("NewChat", chatId);
+    });
+    window.addEventListener("beforeunload", event => {
+        if (!hasConversationContent) return;
+        event.preventDefault();
+        event.returnValue = discardWarning;
+    });
     configurationToggle.addEventListener("click", () => setConfigurationVisible(!configurationRail.classList.contains("is-open")));
     configurationClose.addEventListener("click", () => setConfigurationVisible(false));
 
