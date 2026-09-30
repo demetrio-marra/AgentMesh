@@ -111,6 +111,42 @@ Authentication, request validation, and pipeline routing failures are returned a
 
 Streaming deployments must allow long-lived, unbuffered responses. Configure ingress and reverse proxies to flush SSE frames promptly and use an idle timeout longer than the longest expected workflow step. The server flushes after every event but does not add heartbeat events.
 
+## Web Chat
+
+`AgentMeshWeb` is a standalone ASP.NET Core MVC client for an AgentMesh Runtime API. It has no reference to AgentMesh framework, application, runtime, or infrastructure projects. Its server performs the authenticated HTTP and SSE calls; the browser receives only rendered MVC content and SignalR chat events.
+
+Configure the web host through `AgentMeshWeb/appsettings.json` or environment variables. Keep `Api:ApiKey` out of source control and set it in the environment for local and deployed instances:
+
+```json
+{
+  "Api": {
+    "BaseUrl": "http://localhost:5000",
+    "ApiKey": "<server-side secret>",
+    "HeaderName": "X-Api-Key"
+  },
+  "ConversationSummarization": {
+    "SummaryTokenThreshold": 4000,
+    "NumMessageToPreseve": 6,
+    "SummarizeLanguage": "English"
+  },
+  "ChatContext": {
+    "IdleExpirationMinutes": 120
+  }
+}
+```
+
+Start the Runtime/plugin service first, then start the web host separately:
+
+```powershell
+dotnet run --project <plugin-project>
+$env:Api__ApiKey = "<runtime-api-key>"
+dotnet run --project AgentMeshWeb
+```
+
+The web host is an API-only client. `IChatContextStore` is the ownership boundary for browser-session conversation messages, token counters, and accumulated cost; the initial `InMemoryChatContextStore` is a single-instance, idle-expiring implementation. It intentionally loses chats on process restart and does not share sessions across replicas. Replace that interface through dependency injection with a persistent or distributed adapter when deploying multiple web instances.
+
+The interface accepts text-only messages. It relays workflow progress through SignalR, supports stop and new-chat commands, and renders Markdown using local `marked` and DOMPurify assets. It does not support file, image, audio, or video input.
+
 ## Packaging
 
 Pack the plugin-facing Runtime package and its core dependency:

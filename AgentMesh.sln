@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CallbackViewer", "CallbackV
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Contracts", "AgentMesh.Contracts\AgentMesh.Contracts.csproj", "{B264E4F2-384C-4557-8EBD-159458E0DE3C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMeshWeb", "AgentMeshWeb\AgentMeshWeb.csproj", "{7A42187B-04D9-49C4-81CD-D9D93B611D7D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -167,6 +169,18 @@ Global
 		{B264E4F2-384C-4557-8EBD-159458E0DE3C}.Release|x64.Build.0 = Release|Any CPU
 		{B264E4F2-384C-4557-8EBD-159458E0DE3C}.Release|x86.ActiveCfg = Release|Any CPU
 		{B264E4F2-384C-4557-8EBD-159458E0DE3C}.Release|x86.Build.0 = Release|Any CPU
+		{7A42187B-04D9-49C4-81CD-D9D93B611D7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7A42187B-04D9-49C4-81CD-D9D93B611D7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7A42187B-04D9-49C4-81CD-D9D93B611D7D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7A42187B-04D9-49C4-81CD-D9D93B611D7D}.Debug|x64.Build.0 = Debug|Any CPU
+		{7A42187B-04D9-49C4-81CD-D9D93B611D7D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7A42187B-04D9-49C4-81CD-D9D93B611D7D}.Debug|x86.Build.0 = Debug|Any CPU
+		{7A42187B-04D9-49C4-81CD-D9D93B611D7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7A42187B-04D9-49C4-81CD-D9D93B611D7D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7A42187B-04D9-49C4-81CD-D9D93B611D7D}.Release|x64.ActiveCfg = Release|Any CPU
+		{7A42187B-04D9-49C4-81CD-D9D93B611D7D}.Release|x64.Build.0 = Release|Any CPU
+		{7A42187B-04D9-49C4-81CD-D9D93B611D7D}.Release|x86.ActiveCfg = Release|Any CPU
+		{7A42187B-04D9-49C4-81CD-D9D93B611D7D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

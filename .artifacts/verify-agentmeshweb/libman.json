@@ -1,0 +1,27 @@
+{
+  "version": "1.0",
+  "defaultProvider": "unpkg",
+  "libraries": [
+    {
+      "library": "@microsoft/signalr@8.0.7",
+      "destination": "wwwroot/lib/microsoft-signalr/",
+      "files": [
+        "dist/browser/signalr.min.js"
+      ]
+    },
+    {
+      "library": "marked@15.0.7",
+      "destination": "wwwroot/lib/marked/",
+      "files": [
+        "lib/marked.umd.js"
+      ]
+    },
+    {
+      "library": "dompurify@3.2.4",
+      "destination": "wwwroot/lib/dompurify/",
+      "files": [
+        "dist/purify.min.js"
+      ]
+    }
+  ]
+}
