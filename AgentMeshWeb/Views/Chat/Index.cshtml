@@ -65,6 +65,18 @@
             <h2 id="diagnostics-title">Diagnostics</h2>
             <button id="diagnostics-close" class="icon-button" type="button" aria-label="Close diagnostics">x</button>
         </div>
-        <textarea id="diagnostics-output" readonly aria-label="Workflow diagnostics"></textarea>
+        <div class="diagnostics-tabs">
+            <div class="diagnostics-tablist" role="tablist" aria-label="Diagnostics views">
+                <button id="diagnostics-steps-tab" class="diagnostics-tab is-selected" type="button" role="tab" aria-selected="true" aria-controls="diagnostics-steps-panel">Steps details</button>
+                <button id="diagnostics-raw-tab" class="diagnostics-tab" type="button" role="tab" aria-selected="false" aria-controls="diagnostics-raw-panel" tabindex="-1">Raw data</button>
+            </div>
+            <div id="diagnostics-steps-panel" class="diagnostics-tabpanel diagnostics-steps-panel" role="tabpanel" aria-labelledby="diagnostics-steps-tab">
+                <div id="diagnostics-step-list" class="diagnostics-step-list" aria-label="Workflow steps"></div>
+                <div id="diagnostics-step-details" class="diagnostics-step-details" aria-live="polite"></div>
+            </div>
+            <div id="diagnostics-raw-panel" class="diagnostics-tabpanel" role="tabpanel" aria-labelledby="diagnostics-raw-tab" hidden>
+                <textarea id="diagnostics-output" class="diagnostics-output" readonly aria-label="Workflow diagnostics"></textarea>
+            </div>
+        </div>
     </section>
 </div>

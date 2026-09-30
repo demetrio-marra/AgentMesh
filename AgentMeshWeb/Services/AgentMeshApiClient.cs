@@ -86,7 +86,9 @@ public sealed class AgentMeshApiClient(HttpClient httpClient) : IAgentMeshApiCli
                     case "workflowCompleted":
                         return parseCompletion(payload);
                     case "workflowError":
-                        throw new InvalidOperationException(payload.GetProperty("errorMessage").GetString() ?? "The API workflow failed.");
+                        var errorMessage = payload.GetProperty("errorMessage").GetString() ?? "The API workflow failed.";
+                        await onProgress(new WorkflowProgress("error", errorMessage, eventName, data));
+                        throw new InvalidOperationException(errorMessage);
                     default:
                         throw new InvalidOperationException($"The API returned an unknown stream event '{eventName}'.");
                 }

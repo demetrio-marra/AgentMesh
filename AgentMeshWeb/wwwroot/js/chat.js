@@ -20,10 +20,17 @@
     const diagnosticsOutput = document.getElementById("diagnostics-output");
     const diagnosticsToggle = document.getElementById("diagnostics-toggle");
     const diagnosticsClose = document.getElementById("diagnostics-close");
+    const diagnosticsStepsTab = document.getElementById("diagnostics-steps-tab");
+    const diagnosticsRawTab = document.getElementById("diagnostics-raw-tab");
+    const diagnosticsStepsPanel = document.getElementById("diagnostics-steps-panel");
+    const diagnosticsRawPanel = document.getElementById("diagnostics-raw-panel");
+    const diagnosticsStepList = document.getElementById("diagnostics-step-list");
+    const diagnosticsStepDetails = document.getElementById("diagnostics-step-details");
     const discardWarning = "The conversation will be lost. Continue?";
-    const diagnosticsChunks = [];
+    const diagnosticsEvents = [];
     let isActive = false;
     let hasConversationContent = false;
+    let selectedDiagnosticsStep = -1;
 
     const connection = new signalR.HubConnectionBuilder()
         .withUrl("/hubs/chat")
@@ -120,7 +127,178 @@
     function setDiagnosticsVisible(isVisible) {
         diagnosticsModal.hidden = !isVisible;
         diagnosticsToggle.setAttribute("aria-expanded", String(isVisible));
-        if (isVisible) diagnosticsOutput.focus();
+        if (isVisible) {
+            setDiagnosticsTab("steps");
+            diagnosticsStepsTab.focus();
+        }
+    }
+
+    function setDiagnosticsTab(tab) {
+        const showSteps = tab === "steps";
+        diagnosticsStepsTab.classList.toggle("is-selected", showSteps);
+        diagnosticsRawTab.classList.toggle("is-selected", !showSteps);
+        diagnosticsStepsTab.setAttribute("aria-selected", String(showSteps));
+        diagnosticsRawTab.setAttribute("aria-selected", String(!showSteps));
+        diagnosticsStepsTab.tabIndex = showSteps ? 0 : -1;
+        diagnosticsRawTab.tabIndex = showSteps ? -1 : 0;
+        diagnosticsStepsPanel.hidden = !showSteps;
+        diagnosticsRawPanel.hidden = showSteps;
+        if (!showSteps) diagnosticsOutput.focus();
+    }
+
+    function readPayload(rawData) {
+        try {
+            return JSON.parse(rawData);
+        } catch {
+            return {};
+        }
+    }
+
+    function parameterRows(parameters) {
+        return Array.isArray(parameters)
+            ? parameters.filter(parameter => parameter && typeof parameter === "object" && parameter.name != null).map(parameter => ({
+                name: String(parameter.name),
+                value: parameter.value == null ? "" : String(parameter.value)
+            }))
+            : [];
+    }
+
+    function formatElapsed(value) {
+        if (typeof value !== "string") return "";
+        const match = value.match(/^(\d+):(\d{2}):(\d{2})(?:\.(\d+))?$/);
+        if (!match) return "";
+        const hours = Number(match[1]);
+        const minutes = Number(match[2]);
+        const seconds = Number(match[3]);
+        const fraction = Number(`0.${match[4] || "0"}`);
+        if (hours === 0 && minutes === 0 && seconds === 0 && fraction < 1) return "<1s";
+        return [hours ? `${hours}h` : "", minutes ? `${minutes}m` : "", seconds || fraction ? `${seconds}s` : ""].filter(Boolean).join(" ") || "<1s";
+    }
+
+    function createParameterGrid(title, parameters) {
+        const section = document.createElement("section");
+        section.className = "diagnostics-parameters";
+        const heading = document.createElement("h4");
+        heading.textContent = title;
+        const grid = document.createElement("div");
+        grid.className = "diagnostics-parameter-grid";
+        for (const parameter of parameters) {
+            const name = document.createElement("div");
+            name.className = "diagnostics-parameter-name";
+            name.textContent = parameter.name;
+            const value = document.createElement("div");
+            value.className = "diagnostics-parameter-value";
+            value.textContent = parameter.value;
+            grid.append(name, value);
+        }
+        section.append(heading, grid);
+        return section;
+    }
+
+    function getDiagnosticsSteps() {
+        const diagnosticsSteps = [];
+        for (const event of diagnosticsEvents) {
+            const payload = readPayload(event.rawData);
+            if (event.eventType === "workflowStepStarted") {
+                diagnosticsSteps.push({
+                    name: typeof payload.stepName === "string" ? payload.stepName : "Unnamed step",
+                    type: "Code",
+                    inputs: parameterRows(payload.inputParameters),
+                    outputs: [],
+                    complete: false,
+                    elapsed: "",
+                    errorMessage: ""
+                });
+            } else if (event.eventType === "workflowStepCompleted") {
+                const step = diagnosticsSteps.find(candidate => !candidate.complete && candidate.name === payload.stepName);
+                if (step) {
+                    step.complete = true;
+                    step.type = payload.isAgentic ? "Agentic" : "Code";
+                    step.outputs = parameterRows(Array.isArray(payload.parametersDiff) ? payload.parametersDiff.map(parameter => ({ name: parameter.name, value: parameter.newValue })) : []);
+                    step.elapsed = formatElapsed(payload.elapsed);
+                }
+            } else if (event.eventType === "workflowError") {
+                for (const step of diagnosticsSteps) {
+                    if (!step.complete) step.errorMessage = typeof payload.errorMessage === "string" ? payload.errorMessage : "Workflow failed.";
+                }
+            }
+        }
+        return diagnosticsSteps;
+    }
+
+    function renderDiagnosticsDetails() {
+        const diagnosticsSteps = getDiagnosticsSteps();
+        if (selectedDiagnosticsStep >= diagnosticsSteps.length) selectedDiagnosticsStep = -1;
+        if (selectedDiagnosticsStep === -1 && diagnosticsSteps.length) selectedDiagnosticsStep = 0;
+        diagnosticsStepList.replaceChildren();
+        diagnosticsStepDetails.replaceChildren();
+        diagnosticsSteps.forEach((step, index) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "diagnostics-step";
+            button.classList.toggle("is-selected", index === selectedDiagnosticsStep);
+            button.setAttribute("aria-pressed", String(index === selectedDiagnosticsStep));
+            const name = document.createElement("strong");
+            name.textContent = step.name;
+            const status = document.createElement("span");
+            status.textContent = step.errorMessage ? "Error" : step.complete ? `${step.type} · complete` : `${step.type} · in progress`;
+            button.append(name, status);
+            button.addEventListener("click", () => {
+                selectedDiagnosticsStep = index;
+                renderDiagnosticsDetails();
+            });
+            diagnosticsStepList.append(button);
+        });
+
+        const step = diagnosticsSteps[selectedDiagnosticsStep];
+        if (!step) {
+            const empty = document.createElement("p");
+            empty.className = "diagnostics-empty";
+            empty.textContent = "No workflow steps received yet.";
+            diagnosticsStepDetails.append(empty);
+            return;
+        }
+
+        const heading = document.createElement("div");
+        heading.className = "diagnostics-detail-heading";
+        const title = document.createElement("h3");
+        title.textContent = step.name;
+        const type = document.createElement("span");
+        type.textContent = step.type;
+        heading.append(title, type);
+        diagnosticsStepDetails.append(heading, createParameterGrid("Inputs", step.inputs));
+        if (step.errorMessage) {
+            const errorMessage = document.createElement("p");
+            errorMessage.className = "diagnostics-step-error";
+            errorMessage.textContent = `Workflow error: ${step.errorMessage}`;
+            diagnosticsStepDetails.append(errorMessage);
+        } else if (step.complete) {
+            diagnosticsStepDetails.append(createParameterGrid("Outputs", step.outputs));
+            const elapsed = document.createElement("p");
+            elapsed.className = "diagnostics-elapsed";
+            elapsed.textContent = `Elapsed: ${step.elapsed}`;
+            diagnosticsStepDetails.append(elapsed);
+        } else {
+            const pending = document.createElement("p");
+            pending.className = "diagnostics-pending";
+            pending.textContent = "Step is still in progress.";
+            diagnosticsStepDetails.append(pending);
+        }
+    }
+
+    function appendDiagnostics(event) {
+        if (!event.rawData) return;
+        diagnosticsEvents.push({ eventType: event.eventType, rawData: event.rawData });
+        diagnosticsOutput.value = diagnosticsEvents.map(eventChunk => `{"eventType":${JSON.stringify(eventChunk.eventType)},"payload":${eventChunk.rawData}}`).join("\n\n");
+        diagnosticsOutput.scrollTop = diagnosticsOutput.scrollHeight;
+        renderDiagnosticsDetails();
+    }
+
+    function resetDiagnostics() {
+        diagnosticsEvents.length = 0;
+        selectedDiagnosticsStep = -1;
+        diagnosticsOutput.value = "";
+        renderDiagnosticsDetails();
     }
 
     setConfigurationVisible(false);
@@ -132,11 +310,7 @@
     });
     connection.on("Progress", event => {
         progress.textContent = event.message;
-        if (event.rawData) {
-            diagnosticsChunks.push(`{"eventType":${JSON.stringify(event.eventType)},"payload":${event.rawData}}`);
-            diagnosticsOutput.value = diagnosticsChunks.join("\n\n");
-            diagnosticsOutput.scrollTop = diagnosticsOutput.scrollHeight;
-        }
+        appendDiagnostics(event);
         showError("");
     });
     connection.on("Operation", setOperation);
@@ -148,6 +322,7 @@
         const text = message.value.trim();
         if (!text || isActive) return;
         showError("");
+        resetDiagnostics();
         renderPending(text);
         message.value = "";
         setOperation("chat");
@@ -198,6 +373,18 @@
     configurationClose.addEventListener("click", () => setConfigurationVisible(false));
     diagnosticsToggle.addEventListener("click", () => setDiagnosticsVisible(diagnosticsModal.hidden));
     diagnosticsClose.addEventListener("click", () => setDiagnosticsVisible(false));
+    diagnosticsStepsTab.addEventListener("click", () => setDiagnosticsTab("steps"));
+    diagnosticsRawTab.addEventListener("click", () => setDiagnosticsTab("raw"));
+    for (const tab of [diagnosticsStepsTab, diagnosticsRawTab]) {
+        tab.addEventListener("keydown", event => {
+            if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+                event.preventDefault();
+                const nextTab = tab === diagnosticsStepsTab ? diagnosticsRawTab : diagnosticsStepsTab;
+                setDiagnosticsTab(nextTab === diagnosticsStepsTab ? "steps" : "raw");
+                nextTab.focus();
+            }
+        });
+    }
 
     connection.start()
         .then(() => connection.invoke("Initialize", chatId))
