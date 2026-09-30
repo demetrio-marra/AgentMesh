@@ -1,0 +1,59 @@
+@model ChatPageViewModel
+@{
+    ViewData["Title"] = "Chat";
+}
+
+<main class="app-shell">
+    <header class="topbar">
+        <a class="brand" asp-action="Index">AgentMesh</a>
+        <div class="topbar-actions">
+            <button id="configuration-toggle" class="control-button" type="button" aria-expanded="false">Configuration</button>
+            <button id="new-chat" class="control-button" type="button">New chat</button>
+        </div>
+    </header>
+    <section class="chat-workspace">
+        <aside id="configuration-rail" class="configuration-rail" aria-label="Runtime configuration">
+            <div class="configuration-heading">
+                <h2>Runtime</h2>
+                <button id="configuration-close" class="icon-button" type="button" aria-label="Close configuration">x</button>
+            </div>
+            @if (Model.Configuration is { } configuration)
+            {
+                <dl class="configuration-list">
+                    <div><dt>Sandbox</dt><dd>@configuration.SandboxName</dd></div>
+                    <div><dt>Endpoint</dt><dd>@configuration.SandboxServiceUrl</dd></div>
+                    <div><dt>Agent</dt><dd>@configuration.AgentId</dd></div>
+                </dl>
+                <h3>Configured agents</h3>
+                <ul class="agent-list">
+                    @foreach (var agent in configuration.Agents)
+                    {
+                        <li><strong>@agent.AgentRole</strong><span>@agent.Provider / @agent.Model</span></li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p class="configuration-error">@Model.ConfigurationError</p>
+            }
+        </aside>
+        <section class="chat-panel" aria-label="Conversation">
+            <div id="transcript" class="transcript" aria-live="polite">
+                <div class="empty-state">Start a conversation.</div>
+            </div>
+            <div id="progress" class="progress" role="status" aria-live="polite"></div>
+            <div id="error" class="error" role="alert" hidden></div>
+            <footer class="composer-area">
+                <div class="counters"><span id="token-count">0 tokens</span><span id="cost-count">$0.0000</span></div>
+                <form id="composer" class="composer">
+                    <label class="sr-only" for="message">Message</label>
+                    <textarea id="message" name="message" rows="2" placeholder="Write a message" required></textarea>
+                    <div class="action-slot">
+                        <button id="send" class="primary-button" type="submit">Send</button>
+                        <button id="stop" class="stop-button" type="button" hidden>Stop</button>
+                    </div>
+                </form>
+            </footer>
+        </section>
+    </section>
+</main>
