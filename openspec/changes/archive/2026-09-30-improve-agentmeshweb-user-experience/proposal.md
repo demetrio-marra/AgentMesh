@@ -1,14 +1,16 @@
 ## Why
 
-The AgentMeshWeb chat interface needs predictable viewport scrolling, keyboard composition, and clearer conversation-state handling for longer or active chats. These refinements make the browser client easier to operate without changing its API-only architecture or conversation protocol.
+The current AgentMeshWeb chat separates live workflow status from the conversation, shows a pending user message before the server accepts it, and leaves configuration controls competing with the chat workspace. The interface should communicate accepted-request progress and failures directly where users expect an assistant response, while making diagnostics and configuration easier to inspect.
 
 ## What Changes
 
-- Constrain the chat workspace to the browser viewport, with independently scrollable conversation and configuration regions.
-- Keep the transcript pinned to its latest content whenever new or refreshed messages render.
-- Support Enter to send a message and Shift+Enter or Ctrl+Enter to insert a newline.
-- Format cumulative conversation cost to two decimal places and change the empty-state text to `Conversation is empty`.
-- Require confirmation before discarding a non-empty conversation through New chat, page unload, or refresh; continue the requested action only after confirmation.
+- Replace the standalone live-progress label with a transient assistant-answer placeholder that appears only after the server accepts a request, shows `Processing` until progress arrives, then shows the active step and elapsed time.
+- Convert the placeholder into the completed assistant message on success, or a distinct red error message on failure; keep failed requests out of persisted conversation context and offer no retry control.
+- Restore focus to the composer after every terminal request outcome.
+- Move the message copy action to the lower-right of each rendered message.
+- Move the existing configuration summary into a rightmost `Configuration` tab in Diagnostics and remove the header configuration control and left configuration rail.
+- Size the Raw data textarea to occupy the Diagnostics modal's available tab-panel height.
+- Use the same discard-warning text for browser leave confirmation as New chat.
 
 ## Capabilities
 
@@ -18,14 +20,14 @@ None.
 
 ### Modified Capabilities
 
-- `web-chat-frontend`: Define viewport scrolling, transcript positioning, keyboard submission, conversation-display formatting, and confirmation behavior before destructive chat actions.
+- `web-chat-frontend`: Define accepted-request placeholders, chat-only failure rendering, revised diagnostics configuration placement, and related layout and focus behavior.
 
 ## Impact
 
-- Affected browser presentation and interaction files: `AgentMeshWeb/Views/Chat/Index.cshtml`, `AgentMeshWeb/wwwroot/css/site.css`, and `AgentMeshWeb/wwwroot/js/chat.js`.
-- No AgentMesh API endpoints, SignalR hub contract, server-side conversation model, runtime components, or external dependencies change.
+- Affects AgentMeshWeb Razor markup, client-side chat state and SignalR event handling, and responsive CSS.
+- Reuses the existing SignalR and HTTP API contract; no AgentMesh API, pipeline, or persistence contract changes are expected.
 
 ## Non-goals
 
-- Persisting conversation history across browser sessions or process restarts.
-- Changing message Markdown rendering, cancellation semantics, API authentication, or automatic summarization behavior.
+- Adding retries, streaming partial assistant text, new diagnostics data, or persistent browser-side chat history.
+- Changing the underlying AgentMesh request, workflow, or configuration-summary APIs.

@@ -7,43 +7,15 @@
     <header class="topbar">
         <a class="brand" asp-action="Index">AgentMesh</a>
         <div class="topbar-actions">
-            <button id="configuration-toggle" class="control-button" type="button" aria-expanded="false">Configuration</button>
             <button id="diagnostics-toggle" class="control-button" type="button" aria-expanded="false">Diagnostics</button>
             <button id="new-chat" class="control-button" type="button">New chat</button>
         </div>
     </header>
     <section class="chat-workspace">
-        <aside id="configuration-rail" class="configuration-rail" aria-label="Runtime configuration">
-            <div class="configuration-heading">
-                <h2>Runtime</h2>
-                <button id="configuration-close" class="icon-button" type="button" aria-label="Close configuration">x</button>
-            </div>
-            @if (Model.Configuration is { } configuration)
-            {
-                <dl class="configuration-list">
-                    <div><dt>Sandbox</dt><dd>@configuration.SandboxName</dd></div>
-                    <div><dt>Endpoint</dt><dd>@configuration.SandboxServiceUrl</dd></div>
-                    <div><dt>Agent</dt><dd>@configuration.AgentId</dd></div>
-                </dl>
-                <h3>Configured agents</h3>
-                <ul class="agent-list">
-                    @foreach (var agent in configuration.Agents)
-                    {
-                        <li><strong>@agent.AgentRole</strong><span>@agent.Provider / @agent.Model</span></li>
-                    }
-                </ul>
-            }
-            else
-            {
-                <p class="configuration-error">@Model.ConfigurationError</p>
-            }
-        </aside>
         <section class="chat-panel" aria-label="Conversation">
             <div id="transcript" class="transcript" aria-live="polite">
                 <div class="empty-state">Conversation is empty</div>
             </div>
-            <div id="progress" class="progress" role="status" aria-live="polite"></div>
-            <div id="error" class="error" role="alert" hidden></div>
             <footer class="composer-area">
                 <div class="counters"><span id="token-count">0 tokens</span><span id="cost-count">$0.00</span></div>
                 <form id="composer" class="composer">
@@ -70,6 +42,7 @@
                 <button id="diagnostics-summary-tab" class="diagnostics-tab is-selected" type="button" role="tab" aria-selected="true" aria-controls="diagnostics-summary-panel">Summary</button>
                 <button id="diagnostics-steps-tab" class="diagnostics-tab" type="button" role="tab" aria-selected="false" aria-controls="diagnostics-steps-panel" tabindex="-1">Steps details</button>
                 <button id="diagnostics-raw-tab" class="diagnostics-tab" type="button" role="tab" aria-selected="false" aria-controls="diagnostics-raw-panel" tabindex="-1">Raw data</button>
+                <button id="diagnostics-configuration-tab" class="diagnostics-tab" type="button" role="tab" aria-selected="false" aria-controls="diagnostics-configuration-panel" tabindex="-1">Configuration</button>
             </div>
             <div id="diagnostics-summary-panel" class="diagnostics-tabpanel diagnostics-summary-panel" role="tabpanel" aria-labelledby="diagnostics-summary-tab">
                 <div id="diagnostics-summary" class="diagnostics-summary"></div>
@@ -80,6 +53,27 @@
             </div>
             <div id="diagnostics-raw-panel" class="diagnostics-tabpanel" role="tabpanel" aria-labelledby="diagnostics-raw-tab" hidden>
                 <textarea id="diagnostics-output" class="diagnostics-output" readonly aria-label="Workflow diagnostics"></textarea>
+            </div>
+            <div id="diagnostics-configuration-panel" class="diagnostics-tabpanel diagnostics-configuration-panel" role="tabpanel" aria-labelledby="diagnostics-configuration-tab" hidden>
+                @if (Model.Configuration is { } configuration)
+                {
+                    <dl class="configuration-list">
+                        <div><dt>Sandbox</dt><dd>@configuration.SandboxName</dd></div>
+                        <div><dt>Endpoint</dt><dd>@configuration.SandboxServiceUrl</dd></div>
+                        <div><dt>Agent</dt><dd>@configuration.AgentId</dd></div>
+                    </dl>
+                    <h3>Configured agents</h3>
+                    <ul class="agent-list">
+                        @foreach (var agent in configuration.Agents)
+                        {
+                            <li><strong>@agent.AgentRole</strong><span>@agent.Provider / @agent.Model</span></li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="configuration-error">@Model.ConfigurationError</p>
+                }
             </div>
         </div>
     </section>

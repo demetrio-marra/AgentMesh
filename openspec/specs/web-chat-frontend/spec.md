@@ -22,7 +22,7 @@ The web frontend SHALL submit chat and summarization work through the configured
 - **THEN** it reports the failure in the browser without mutating the current conversation
 
 ### Requirement: Web frontend SHALL provide a text-only chat experience
-The web frontend SHALL accept non-empty text messages only, display user and assistant messages as a chronological conversation, and render all displayed message text as Markdown regardless of whether the source text contains Markdown syntax. It SHALL NOT offer image, audio, video, or file input. When no operation is active, pressing Enter in the message input SHALL submit a non-empty message; pressing Shift+Enter or Ctrl+Enter SHALL insert a newline without submitting.
+The web frontend SHALL accept non-empty text messages only and display user and assistant messages as a chronological conversation. It SHALL render displayed message text as safe Markdown and SHALL NOT offer image, audio, video, or file input. When no operation is active, Enter in the message input SHALL submit a non-empty message; Shift+Enter or Ctrl+Enter SHALL insert a newline without submitting. Each user and completed assistant message SHALL provide a Copy action in its lower-right corner. After a request reaches a terminal success, failure, or cancellation state, the message input SHALL regain focus.
 
 #### Scenario: User submits text
 - **WHEN** the user submits a non-empty text message while no request is active
@@ -42,10 +42,44 @@ The web frontend SHALL accept non-empty text messages only, display user and ass
 - **WHEN** the user presses Shift+Enter or Ctrl+Enter in the message input
 - **THEN** the frontend inserts a newline without submitting
 
-### Requirement: Web frontend SHALL deliver workflow progress in real time
-The web frontend SHALL consume the existing authenticated chat and summarization streaming endpoints and SHALL relay each received workflow lifecycle event, including the terminal `workflowCompleted` event, to the initiating browser session through SignalR as it arrives. The interface SHALL show current progress without adding progress events to the conversation transcript. For every relayed progress event, the browser session SHALL receive the original event payload as an unmodified raw data chunk in addition to its user-facing progress message. The terminal `workflowCompleted` event SHALL be retained in Raw data but SHALL NOT create or modify a Steps details entry.
+#### Scenario: User copies a completed message
+- **WHEN** the user activates Copy for a user or completed assistant message
+- **THEN** the frontend copies that message's source text and keeps the action in the message's lower-right corner
 
-The chat top bar SHALL provide a Diagnostics control adjacent to the Configuration control. Activating Diagnostics SHALL open a viewport-centered, enlarged modal that visually obscures the chat workspace and contains an accessible tablist. The tablist SHALL contain `Summary` first, `Steps details` second, and `Raw data` last. `Summary` SHALL be selected when the modal opens. The `Raw data` panel SHALL contain the existing large vertically scrollable, read-only text area, which SHALL show the latest request's raw progress chunks in arrival order without modifying previously received chunks. The modal SHALL provide an explicit close control and SHALL remain open when the user clicks its backdrop.
+#### Scenario: Request reaches a terminal state
+- **WHEN** a submitted request completes, fails, or is cancelled
+- **THEN** the frontend returns focus to the message input after updating the transcript
+
+### Requirement: Web frontend SHALL deliver workflow progress in real time
+The web frontend SHALL relay received workflow lifecycle events only to the initiating browser session and retain each original event payload as a raw diagnostic chunk. The terminal `workflowCompleted` event SHALL remain available in Raw data and SHALL NOT create or modify a Steps details entry. The chat workspace SHALL NOT show a separate current-step or generic error strip.
+
+For an accepted chat request, the conversation SHALL show one transient assistant-answer placeholder immediately after the latest user message. Before a progress event communicates a step, the placeholder SHALL show italic `Processing`; afterward it SHALL show the current executing-step message in italic text. The placeholder SHALL show a human-readable elapsed duration since its latest state change in smaller text at its lower-right corner, reset that duration whenever its displayed state changes, and use a distinct visual treatment from completed assistant messages. A successful terminal result SHALL replace the placeholder with the normal completed assistant message and remove the elapsed-duration display. A failed request SHALL replace the placeholder with a distinct reddish message reading `An error has occurred` and remove the elapsed-duration display.
+
+Activating Diagnostics SHALL open a viewport-centered, enlarged modal that visually obscures the chat workspace and contains an accessible tablist. The tablist SHALL contain `Summary` first, `Steps details` second, `Raw data` third, and rightmost `Configuration`. `Summary` SHALL be selected when the modal opens. Configuration SHALL show the existing sanitized sandbox and agent summary or its existing non-blocking unavailable message. The configuration rail and its application-header control SHALL not be present. The `Raw data` panel SHALL contain the existing large vertically scrollable, read-only text area, which SHALL show the latest request's raw progress chunks in arrival order without modifying previously received chunks and SHALL use the available tab-panel height. The modal SHALL provide an explicit close control and SHALL remain open when the user clicks its backdrop.
+
+#### Scenario: Request is accepted before progress arrives
+- **WHEN** the frontend receives successful acceptance of a submitted chat request and no workflow progress has arrived
+- **THEN** it appends one distinct assistant placeholder after the user's message with italic `Processing` and a running elapsed duration
+
+#### Scenario: Workflow reports progress
+- **WHEN** the browser receives a progress event for the active chat request
+- **THEN** the placeholder shows the current executing-step message in italic text, resets and continues its elapsed duration, and the event remains available in diagnostics
+
+#### Scenario: Workflow completes successfully
+- **WHEN** the frontend receives the terminal completed conversation state for an active chat request
+- **THEN** it replaces the placeholder with the completed assistant message and removes the placeholder duration
+
+#### Scenario: Workflow fails
+- **WHEN** an active chat request reports an error or fails before completion
+- **THEN** it replaces the placeholder with the reddish `An error has occurred` message, does not add an error to the persisted conversation, and does not offer a retry action
+
+#### Scenario: User views configuration diagnostics
+- **WHEN** the user opens Diagnostics and selects the rightmost `Configuration` tab
+- **THEN** the frontend displays the existing sanitized configuration summary or its non-blocking unavailable message without changing the conversation or workflow
+
+#### Scenario: User views raw diagnostics
+- **WHEN** the user selects `Raw data` in Diagnostics
+- **THEN** the read-only raw-data textarea fills the available modal tab-panel height and scrolls vertically for overflowing content
 
 The Summary panel SHALL present one HTML execution-summary table for the most recently completed chat workflow. It SHALL list each main-pipeline step in execution order with its name, human-readable elapsed duration, and, for each agentic step, input tokens, input-token percentage, input cost, output tokens, output-token percentage, output cost, and total cost. Non-agentic steps SHALL retain their elapsed duration and display unavailable token and cost values distinctly. Input and output percentages SHALL use the total token-priced agentic input and output tokens respectively as their denominators. The table SHALL include a `TOTAL (TOKEN-BASED)` row with aggregate token counts and token-priced costs. When one or more agent executions have hourly pricing, the Summary panel SHALL also present the hourly-priced rows with elapsed duration, hourly rate, per-row total cost, and a `TOTAL (HOURLY-BASED)` row. Beneath the step-consumption grid, the Summary panel SHALL show labels for the total elapsed workflow time in human-readable format and the combined token-priced and hourly-priced total cost. Durations SHALL format as `<1s` below one second, otherwise use nonzero hour, minute, and second units such as `50s` or `1m 45s`.
 
@@ -153,7 +187,11 @@ The web frontend SHALL allow at most one chat or summarization operation to be a
 - **THEN** the frontend displays an error, clears the active state, and retains the pre-operation conversation context
 
 ### Requirement: Web frontend SHALL own isolated conversation context
-The web frontend, as the AgentMesh API caller, SHALL own conversation context independently of AgentMesh.Runtime and SHALL keep messages, token count, and accumulated cost in memory for each browser chat session for the lifetime of the web process. A successful chat completion SHALL commit the submitted user message and returned assistant message together with the returned counters. A new-chat action SHALL cancel any active operation and clear both the visible conversation and its complete context. Before a new-chat action clears a non-empty conversation, the frontend SHALL present a confirmation with the text `The conversation will be lost. Continue?` and clear the conversation only when the user confirms. Before the browser page unloads or refreshes with a non-empty conversation, the frontend SHALL request browser-provided leave confirmation using that warning text; if the browser allows the user to remain, the conversation SHALL stay intact.
+The web frontend SHALL own conversation context independently of AgentMesh.Runtime and keep messages, token count, and accumulated cost in memory for each browser chat session for the lifetime of the web process. A successful chat completion SHALL commit the submitted user message and returned assistant message together with returned counters. Failed, cancelled, and transient placeholder messages SHALL remain presentation-only and SHALL NOT be included in the context for a later request. Before New chat clears a non-empty conversation, the frontend SHALL present `The conversation will be lost. Continue?`. Before page close, refresh, or navigation with a non-empty conversation, it SHALL use the same text for the browser-provided leave confirmation.
+
+#### Scenario: Failed request is followed by another request
+- **WHEN** a chat request fails and the user later submits a new request
+- **THEN** the next request contains only the previously committed conversation messages and excludes the failed request and its error display
 
 #### Scenario: Chat completes successfully
 - **WHEN** the chat stream returns one successful terminal result
@@ -195,22 +233,22 @@ After a successful chat completion, the web frontend SHALL request streamed summ
 - **THEN** the frontend keeps the completed chat context without requesting summarization
 
 ### Requirement: Configuration summary SHALL be available without occupying chat space
-The web frontend SHALL retrieve the existing sanitized API configuration summary and display the sandbox and configured-agent information in an area that the user can expand or collapse. Collapsing the area SHALL increase the space available to the chat and SHALL NOT discard the retrieved configuration.
+The web frontend SHALL retrieve the existing sanitized API configuration summary and display the sandbox and configured-agent information in the Diagnostics Configuration tab. The summary SHALL remain available without reserving space beside the chat and SHALL NOT be discarded while the user views other diagnostics tabs.
 
 #### Scenario: Configuration summary loads
 - **WHEN** the AgentMesh API returns its configuration summary
 - **THEN** the frontend shows the sandbox identity and configured agent details in the configuration area
 
-#### Scenario: User toggles configuration visibility
-- **WHEN** the user collapses or expands the configuration area
-- **THEN** the chat layout resizes accordingly and the configuration data remains available
+#### Scenario: User views configuration in Diagnostics
+- **WHEN** the user selects the Configuration tab in Diagnostics
+- **THEN** the frontend shows the retrieved configuration data without resizing the chat workspace
 
 #### Scenario: Configuration summary cannot load
 - **WHEN** the AgentMesh API rejects or cannot serve the configuration summary
 - **THEN** the frontend displays a non-blocking configuration error and keeps chat controls available
 
 ### Requirement: Web chat layout SHALL remain usable across common viewport sizes
-The web frontend SHALL keep conversation history, progress, text input, stop, new-chat, and configuration-toggle controls usable without incoherent overlap on supported desktop and mobile viewport sizes. The application workspace SHALL fit within the viewport height, with the conversation transcript and expanded configuration area independently vertically scrollable. When new conversation content is rendered, the transcript SHALL scroll to its latest content. The empty conversation label SHALL read `Conversation is empty`, and accumulated conversation cost SHALL display exactly two decimal places.
+The web frontend SHALL keep conversation history, text input, stop, New chat, and Diagnostics controls usable without incoherent overlap on supported desktop and mobile viewport sizes. The application workspace SHALL fit within the viewport height, and the transcript SHALL scroll independently to its latest content when new conversation content is rendered. Configuration SHALL be available only in Diagnostics and SHALL not reserve viewport space beside the chat. The empty conversation label SHALL read `Conversation is empty`, and accumulated conversation cost SHALL display exactly two decimal places.
 
 #### Scenario: User opens the frontend on a narrow viewport
 - **WHEN** the available viewport width requires a compact layout
@@ -219,8 +257,8 @@ The web frontend SHALL keep conversation history, progress, text input, stop, ne
 #### Scenario: User views a long conversation
 - **WHEN** the conversation contains more content than the available workspace height
 - **THEN** the transcript scrolls independently to show its latest content while the composer and top-level controls remain usable
-- **WHEN** the configuration area is expanded and contains more content than its available height
-- **THEN** the configuration area scrolls independently without expanding the application beyond the viewport
+- **WHEN** the Configuration diagnostics tab contains more content than its available modal height
+- **THEN** its content scrolls without expanding the application beyond the viewport
 
 #### Scenario: User starts with an empty conversation
 - **WHEN** no conversation messages are present

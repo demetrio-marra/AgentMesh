@@ -1,59 +1,55 @@
 ## Context
 
-See [proposal.md](proposal.md) for motivation and [the specification delta](specs/web-chat-frontend/spec.md) for behavior. The existing MVC chat page uses a grid layout in `site.css` and browser-side state rendering in `chat.js`. The transcript already scrolls after full and pending message rendering, but related rendering paths are not centralized. The page presently uses a minimum viewport height, displays the old empty label, formats cost to four decimals, and invokes New chat without a discard check.
-
-The configured architecture-baseline document is unavailable at the referenced archive path; this design is therefore based on the current AgentMeshWeb sources and the existing `web-chat-frontend` specification.
+See [proposal.md](proposal.md) for motivation and [the delta spec](specs/web-chat-frontend/spec.md) for behavior. AgentMeshWeb is an MVC page with a browser-side SignalR client. `ChatCoordinator` already starts an operation before returning from `Submit`, then emits `Operation`, forwarded `Progress`, final `State`, and `Error` events. The browser currently creates a pending user message before `Submit` resolves, renders progress and errors outside the transcript, and owns configuration in a left rail.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Keep the application shell within the viewport while allowing transcript and configuration details to scroll independently.
-- Make keyboard submission, transcript placement, formatting, and discard confirmation consistent across browser interactions.
-- Preserve AgentMeshWeb's API-only client boundary and existing SignalR event contract.
+- Make accepted-request execution and failures legible at the expected assistant-response position.
+- Preserve the existing API-only boundary, session isolation, diagnostic raw events, and context persistence rules.
+- Reclaim the chat viewport while retaining configuration visibility in Diagnostics.
 
 **Non-Goals:**
-- Introduce server-side persistence, change conversation state ownership, or alter HTTP and SignalR contracts.
-- Replace the native browser confirmation mechanism or guarantee custom text where browsers suppress it.
+- Change SignalR hub methods, API models, context-store semantics, or workflow event payloads.
+- Stream partial model output, add retry controls, or persist transient browser UI state.
 
 ## Decisions
 
-### Use bounded CSS grid regions instead of document-height growth
+### Use a client-only placeholder state keyed to accepted submissions
 
-Set the document and application shell to the viewport height and propagate `min-height: 0` through grid children so overflow is resolved by the transcript and configuration rail. On narrow screens, retain the configuration overlay but size its scrollable region against the viewport below the top bar.
+Create a transient transcript article only after `connection.invoke("Submit", ...)` resolves. Keep its state outside `renderMessages`, including the latest display text, timestamp, and one scheduled counter update. Start as `Processing`, update it when progress arrives, and reset its timestamp at each display-state transition. Remove its timer and replace the placeholder when terminal `State` carries the normal completed conversation or when `Error`/failed operation arrives.
 
-This matches the existing grid and responsive layout without adding a new layout component. Using page-level scrolling would leave the composer and top bar outside the intended fixed workspace.
+This uses the coordinator's completed submission as the acceptance boundary and avoids a new acknowledgement message or server persistence field. Rendering a pending message before invocation was rejected because a rejected Hub call would visually imply that the pipeline accepted the request.
 
-### Centralize transcript positioning after message rendering
+### Make placeholders presentation-only
 
-Introduce one browser helper that scrolls the transcript to its scroll height and call it after every code path that adds or replaces visible conversation messages. This preserves the existing pending-message behavior and extends it to state refreshes and summary rewrites.
+Continue using `State` as the source of truth for committed user and assistant messages. On failure, restore or retain the previously received state, then replace only the transient article with the generic reddish error message. A later submission uses only server-held context, so neither the provisional request nor the error can be forwarded as conversation history.
 
-Using MutationObserver was considered but rejected because rendering is already controlled by a small set of explicit functions; an observer would make user-driven scroll behavior and future cleanup less predictable.
+Persisting errors as assistant messages was rejected because it violates the context contract and would expose transport details to later model requests.
 
-### Handle composing keys with a textarea keydown handler
+### Consolidate configuration into Diagnostics
 
-Intercept Enter only when neither Shift nor Ctrl is held and composition is not active; prevent the textarea's default newline and route through the existing submit operation. Leave Shift+Enter and Ctrl+Enter untouched so the textarea creates a newline, while preserving the existing active-operation and empty-message guards.
+Render the existing server-provided configuration summary in a `Configuration` tab placed after Raw data in the existing accessible tablist. Generalize the tab-selection and arrow-key navigation logic to include that fourth tab. Remove the rail, toggle, and rail-specific responsive layout; keep the existing non-blocking configuration-error content in the new panel.
 
-Changing the textarea to a single-line input was rejected because multi-line messages remain supported.
+Adding a second modal or retaining a collapsible rail was rejected because both preserve the competing workspace controls that this change removes.
 
-### Use one conversation-content predicate for destructive confirmations
+### Let modal layout determine Raw data height
 
-Track whether the visible/session conversation has content from state updates and pending rendering. Before `NewChat`, call `window.confirm` with the specified text only when that predicate is true; invoke the hub action only after acceptance. Register `beforeunload` with the same predicate and warning text so refresh and navigation receive the browser's standard leave confirmation.
+Keep the dialog and tab container as constrained grid rows, make every tab panel capable of filling the remaining row, and have the Raw textarea stretch to that panel. This replaces percentage or intrinsic sizing that leaves unused vertical space while retaining overflow inside the textarea.
 
-Native `beforeunload` is chosen over a custom modal because only the former can interrupt browser navigation. Modern browsers may replace or omit custom confirmation text; the New chat confirmation can display the exact requested text, while unload behavior follows browser policy.
+### Centralize terminal cleanup
 
-### Keep display-only changes in the existing browser assets
-
-Update the empty-state literal in the view/client renderer and format the received cumulative cost using two decimal places. No controller, coordinator, hub, or API changes are needed because the state payload already supplies messages and cumulative cost.
+Route successful completion, failure, cancellation, and locally rejected submission through shared cleanup that stops the placeholder timer, reconciles the transient article, updates operation controls, and focuses the composer. Keep the browser `beforeunload` listener using the same discard-warning constant as New chat.
 
 ## Risks / Trade-offs
 
-- [Browser-specific unload messaging] -> Register the standard leave handler with the requested text and document that browsers control the rendered prompt.
-- [Nested grid overflow can accidentally expand the page] -> Validate fixed-height behavior in desktop and narrow viewport layouts with long transcript and configuration data.
-- [Key handling can interfere with IME composition] -> Ignore composition events and retain the submit handler as the shared send path.
-- [Pending messages may not be represented in the latest server state] -> Include pending visible content in the discard predicate until state reconciliation occurs.
+- [Out-of-order SignalR messages may leave a stale placeholder] -> Reconcile it on every terminal `State`, `Error`, `Operation` terminal state, New chat, and reconnect initialization; guard timer updates by the active request token.
+- [A client timer can continue after the DOM is replaced] -> Store and clear one interval handle whenever placeholder state terminates or the transcript is reset.
+- [New tab may weaken keyboard accessibility] -> Extend the existing roving `tabindex`, `aria-selected`, `aria-controls`, and arrow navigation to all four tabs.
+- [The generic chat error conceals technical detail] -> Preserve the existing raw diagnostic events and step-detail error display in Diagnostics while keeping the transcript message user-friendly.
 
 ## Migration Plan
 
-1. Deploy the static view, CSS, and JavaScript updates with the existing AgentMeshWeb application.
-2. Verify keyboard, confirmation, scrollbar, and formatting scenarios in supported browsers after deployment.
-3. Roll back by restoring the previous static assets; no stored data, API contract, or service migration is involved.
+1. Deploy as a browser-only AgentMeshWeb update with no data migration or API compatibility change.
+2. Validate successful, failed, cancelled, and rejected submissions plus responsive diagnostics views.
+3. Roll back by restoring the prior static assets and Razor markup; server context and API interactions remain compatible.

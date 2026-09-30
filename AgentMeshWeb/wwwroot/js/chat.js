@@ -9,13 +9,8 @@
     const send = document.getElementById("send");
     const stop = document.getElementById("stop");
     const newChat = document.getElementById("new-chat");
-    const progress = document.getElementById("progress");
-    const error = document.getElementById("error");
     const tokenCount = document.getElementById("token-count");
     const costCount = document.getElementById("cost-count");
-    const configurationRail = document.getElementById("configuration-rail");
-    const configurationToggle = document.getElementById("configuration-toggle");
-    const configurationClose = document.getElementById("configuration-close");
     const diagnosticsModal = document.getElementById("diagnostics-modal");
     const diagnosticsOutput = document.getElementById("diagnostics-output");
     const diagnosticsToggle = document.getElementById("diagnostics-toggle");
@@ -23,9 +18,11 @@
     const diagnosticsSummaryTab = document.getElementById("diagnostics-summary-tab");
     const diagnosticsStepsTab = document.getElementById("diagnostics-steps-tab");
     const diagnosticsRawTab = document.getElementById("diagnostics-raw-tab");
+    const diagnosticsConfigurationTab = document.getElementById("diagnostics-configuration-tab");
     const diagnosticsSummaryPanel = document.getElementById("diagnostics-summary-panel");
     const diagnosticsStepsPanel = document.getElementById("diagnostics-steps-panel");
     const diagnosticsRawPanel = document.getElementById("diagnostics-raw-panel");
+    const diagnosticsConfigurationPanel = document.getElementById("diagnostics-configuration-panel");
     const diagnosticsSummary = document.getElementById("diagnostics-summary");
     const diagnosticsStepList = document.getElementById("diagnostics-step-list");
     const diagnosticsStepDetails = document.getElementById("diagnostics-step-details");
@@ -35,6 +32,9 @@
     let hasConversationContent = false;
     let selectedDiagnosticsStep = -1;
     let workflowSummary = null;
+    let committedMessageCount = 0;
+    let isSubmitting = false;
+    let pendingRequest = null;
 
     const connection = new signalR.HubConnectionBuilder()
         .withUrl("/hubs/chat")
@@ -58,6 +58,7 @@
 
     function renderMessages(messages) {
         hasConversationContent = messages.length > 0;
+        committedMessageCount = messages.length;
         transcript.replaceChildren();
         if (!messages.length) {
             const empty = document.createElement("div");
@@ -86,12 +87,11 @@
         scrollTranscriptToBottom();
     }
 
-    function renderPending(text) {
+    function renderAcceptedUser(text) {
         const empty = transcript.querySelector(".empty-state");
         if (empty) empty.remove();
         const pending = document.createElement("article");
-        pending.className = "message message-user pending";
-        pending.dataset.pending = "true";
+        pending.className = "message message-user";
         const role = document.createElement("div");
         role.className = "message-role";
         role.textContent = "User";
@@ -109,23 +109,23 @@
 
     function setOperation(state) {
         isActive = state === "chat" || state === "summarizing";
-        message.disabled = isActive;
+        message.disabled = isActive || isSubmitting;
         send.hidden = isActive;
         stop.hidden = !isActive;
-        send.disabled = isActive || !message.value.trim();
-        if (state === "canceled") progress.textContent = "Request canceled.";
-        if (state === "failed") progress.textContent = "Request failed.";
-        if (state === "idle") progress.textContent = "";
+        send.disabled = isActive || isSubmitting || !message.value.trim();
     }
 
-    function showError(text) {
-        error.textContent = text;
-        error.hidden = !text;
+    function finishComposer() {
+        isSubmitting = false;
+        setOperation("idle");
+        message.focus();
     }
 
-    function setConfigurationVisible(isVisible) {
-        configurationRail.classList.toggle("is-open", isVisible);
-        configurationToggle.setAttribute("aria-expanded", String(isVisible));
+    function clearPendingRequest() {
+        if (!pendingRequest) return;
+        window.clearInterval(pendingRequest.timer);
+        pendingRequest.article.remove();
+        pendingRequest = null;
     }
 
     function setDiagnosticsVisible(isVisible) {
@@ -140,19 +140,72 @@
     function setDiagnosticsTab(tab) {
         const showSummary = tab === "summary";
         const showSteps = tab === "steps";
+        const showConfiguration = tab === "configuration";
         diagnosticsSummaryTab.classList.toggle("is-selected", showSummary);
         diagnosticsStepsTab.classList.toggle("is-selected", showSteps);
-        diagnosticsRawTab.classList.toggle("is-selected", !showSummary && !showSteps);
+        diagnosticsRawTab.classList.toggle("is-selected", tab === "raw");
+        diagnosticsConfigurationTab.classList.toggle("is-selected", showConfiguration);
         diagnosticsSummaryTab.setAttribute("aria-selected", String(showSummary));
         diagnosticsStepsTab.setAttribute("aria-selected", String(showSteps));
-        diagnosticsRawTab.setAttribute("aria-selected", String(!showSummary && !showSteps));
+        diagnosticsRawTab.setAttribute("aria-selected", String(tab === "raw"));
+        diagnosticsConfigurationTab.setAttribute("aria-selected", String(showConfiguration));
         diagnosticsSummaryTab.tabIndex = showSummary ? 0 : -1;
         diagnosticsStepsTab.tabIndex = showSteps ? 0 : -1;
-        diagnosticsRawTab.tabIndex = !showSummary && !showSteps ? 0 : -1;
+        diagnosticsRawTab.tabIndex = tab === "raw" ? 0 : -1;
+        diagnosticsConfigurationTab.tabIndex = showConfiguration ? 0 : -1;
         diagnosticsSummaryPanel.hidden = !showSummary;
         diagnosticsStepsPanel.hidden = !showSteps;
-        diagnosticsRawPanel.hidden = showSummary || showSteps;
-        if (!showSummary && !showSteps) diagnosticsOutput.focus();
+        diagnosticsRawPanel.hidden = tab !== "raw";
+        diagnosticsConfigurationPanel.hidden = !showConfiguration;
+        if (tab === "raw") diagnosticsOutput.focus();
+    }
+
+    function renderPlaceholder() {
+        if (!pendingRequest) return;
+        pendingRequest.body.replaceChildren();
+        const state = document.createElement("em");
+        state.textContent = pendingRequest.displayText;
+        const spinner = document.createElement("span");
+        spinner.className = "placeholder-spinner";
+        spinner.setAttribute("aria-hidden", "true");
+        pendingRequest.body.append(state, spinner);
+        pendingRequest.elapsed.textContent = formatDurationMilliseconds(Date.now() - pendingRequest.stateChangedAt);
+    }
+
+    function createPlaceholder() {
+        const article = document.createElement("article");
+        article.className = "message message-assistant pending";
+        const body = document.createElement("div");
+        body.className = "message-body";
+        const elapsed = document.createElement("small");
+        elapsed.className = "message-elapsed";
+        article.append(body, elapsed);
+        transcript.append(article);
+        pendingRequest = { article, body, elapsed, displayText: "Processing", stateChangedAt: Date.now(), timer: 0 };
+        pendingRequest.timer = window.setInterval(renderPlaceholder, 1000);
+        renderPlaceholder();
+        scrollTranscriptToBottom();
+    }
+
+    function updatePlaceholder(text) {
+        if (!pendingRequest || !text || pendingRequest.displayText === text) return;
+        pendingRequest.displayText = text;
+        pendingRequest.stateChangedAt = Date.now();
+        renderPlaceholder();
+    }
+
+    function renderFailure() {
+        if (!pendingRequest) return;
+        window.clearInterval(pendingRequest.timer);
+        pendingRequest.article.classList.remove("pending");
+        pendingRequest.article.classList.add("message-error");
+        pendingRequest.body.replaceChildren();
+        const text = document.createElement("em");
+        text.textContent = "An error has occurred";
+        pendingRequest.body.append(text);
+        pendingRequest.elapsed.remove();
+        pendingRequest = null;
+        finishComposer();
     }
 
     function readPayload(rawData) {
@@ -446,44 +499,63 @@
         renderDiagnosticsSummary();
     }
 
-    setConfigurationVisible(false);
-
     connection.on("State", state => {
+        const previousCommittedMessageCount = committedMessageCount;
         renderMessages(state.messages);
         tokenCount.textContent = `${state.tokenCount} tokens`;
         costCount.textContent = `$${Number(state.cumulatedCost).toFixed(2)}`;
+        if (pendingRequest && state.messages.length > previousCommittedMessageCount) {
+            clearPendingRequest();
+            finishComposer();
+        } else if (pendingRequest) {
+            transcript.append(pendingRequest.article);
+            scrollTranscriptToBottom();
+        }
     });
     connection.on("Progress", event => {
-        progress.textContent = event.message;
+        updatePlaceholder(event.message);
         appendDiagnostics(event);
-        showError("");
     });
     connection.on("WorkflowSummary", summary => {
         workflowSummary = summary;
         renderDiagnosticsSummary();
     });
     connection.on("Operation", setOperation);
-    connection.on("Error", showError);
-    connection.onreconnected(() => connection.invoke("Initialize", chatId));
+    connection.on("Error", () => renderFailure());
+    connection.on("Operation", state => {
+        setOperation(state);
+        if (state === "canceled") {
+            clearPendingRequest();
+            finishComposer();
+        } else if (state === "failed") {
+            renderFailure();
+        }
+    });
+    connection.onreconnected(() => {
+        clearPendingRequest();
+        finishComposer();
+        connection.invoke("Initialize", chatId);
+    });
 
     composer.addEventListener("submit", async event => {
         event.preventDefault();
         const text = message.value.trim();
-        if (!text || isActive) return;
-        showError("");
+        if (!text || isActive || isSubmitting) return;
         resetDiagnostics();
-        renderPending(text);
-        message.value = "";
-        setOperation("chat");
+        isSubmitting = true;
+        setOperation("idle");
         try {
             await connection.invoke("Submit", chatId, text);
+            renderAcceptedUser(text);
+            createPlaceholder();
+            message.value = "";
+            setOperation("chat");
         } catch (exception) {
-            showError(exception.message || "Unable to submit the message.");
-            setOperation("idle");
+            finishComposer();
         }
     });
     message.addEventListener("input", () => {
-        send.disabled = isActive || !message.value.trim();
+        send.disabled = isActive || isSubmitting || !message.value.trim();
     });
     message.addEventListener("keydown", event => {
         if (event.key !== "Enter" || event.shiftKey || event.ctrlKey || event.isComposing || event.keyCode === 229) return;
@@ -505,12 +577,13 @@
                 copyButton.setAttribute("aria-label", "Copy message");
             }, 1400);
         } catch {
-            showError("Unable to copy the message.");
+            return;
         }
     });
     stop.addEventListener("click", () => connection.invoke("Stop", chatId));
     newChat.addEventListener("click", () => {
         if (hasConversationContent && !window.confirm(discardWarning)) return;
+        clearPendingRequest();
         connection.invoke("NewChat", chatId);
     });
     window.addEventListener("beforeunload", event => {
@@ -518,22 +591,21 @@
         event.preventDefault();
         event.returnValue = discardWarning;
     });
-    configurationToggle.addEventListener("click", () => setConfigurationVisible(!configurationRail.classList.contains("is-open")));
-    configurationClose.addEventListener("click", () => setConfigurationVisible(false));
     diagnosticsToggle.addEventListener("click", () => setDiagnosticsVisible(diagnosticsModal.hidden));
     diagnosticsClose.addEventListener("click", () => setDiagnosticsVisible(false));
     diagnosticsSummaryTab.addEventListener("click", () => setDiagnosticsTab("summary"));
     diagnosticsStepsTab.addEventListener("click", () => setDiagnosticsTab("steps"));
     diagnosticsRawTab.addEventListener("click", () => setDiagnosticsTab("raw"));
-    for (const tab of [diagnosticsSummaryTab, diagnosticsStepsTab, diagnosticsRawTab]) {
+    diagnosticsConfigurationTab.addEventListener("click", () => setDiagnosticsTab("configuration"));
+    for (const tab of [diagnosticsSummaryTab, diagnosticsStepsTab, diagnosticsRawTab, diagnosticsConfigurationTab]) {
         tab.addEventListener("keydown", event => {
             if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
                 event.preventDefault();
-                const tabs = [diagnosticsSummaryTab, diagnosticsStepsTab, diagnosticsRawTab];
+                const tabs = [diagnosticsSummaryTab, diagnosticsStepsTab, diagnosticsRawTab, diagnosticsConfigurationTab];
                 const currentIndex = tabs.indexOf(tab);
                 const offset = event.key === "ArrowRight" ? 1 : -1;
                 const nextTab = tabs[(currentIndex + offset + tabs.length) % tabs.length];
-                setDiagnosticsTab(nextTab === diagnosticsSummaryTab ? "summary" : nextTab === diagnosticsStepsTab ? "steps" : "raw");
+                setDiagnosticsTab(nextTab === diagnosticsSummaryTab ? "summary" : nextTab === diagnosticsStepsTab ? "steps" : nextTab === diagnosticsRawTab ? "raw" : "configuration");
                 nextTab.focus();
             }
         });
@@ -543,5 +615,5 @@
 
     connection.start()
         .then(() => connection.invoke("Initialize", chatId))
-        .catch(() => showError("Unable to connect to the chat service."));
+        .catch(() => finishComposer());
 })();
