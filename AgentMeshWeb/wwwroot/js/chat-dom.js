@@ -75,13 +75,7 @@ export function createMessageRenderer({ transcript }) {
 
     function renderPlaceholder() {
         if (!pendingRequest) return;
-        pendingRequest.body.replaceChildren();
-        const state = document.createElement("em");
-        state.textContent = pendingRequest.displayText;
-        const spinner = document.createElement("span");
-        spinner.className = "placeholder-spinner";
-        spinner.setAttribute("aria-hidden", "true");
-        pendingRequest.body.append(state, spinner);
+        pendingRequest.state.textContent = pendingRequest.displayText;
         pendingRequest.elapsed.textContent = formatDurationMilliseconds(Date.now() - pendingRequest.stateChangedAt);
     }
 
@@ -90,11 +84,16 @@ export function createMessageRenderer({ transcript }) {
         article.className = "message message-assistant pending";
         const body = document.createElement("div");
         body.className = "message-body";
+        const state = document.createElement("em");
+        const spinner = document.createElement("span");
+        spinner.className = "placeholder-spinner";
+        spinner.setAttribute("aria-hidden", "true");
+        body.append(state, spinner);
         const elapsed = document.createElement("small");
         elapsed.className = "message-elapsed";
         article.append(body, elapsed);
         transcript.append(article);
-        pendingRequest = { article, body, elapsed, displayText: "Processing", stateChangedAt: Date.now(), timer: window.setInterval(renderPlaceholder, 1000) };
+        pendingRequest = { article, body, state, elapsed, displayText: "Processing", stateChangedAt: Date.now(), timer: window.setInterval(renderPlaceholder, 1000) };
         renderPlaceholder();
         scrollToBottom();
     }
