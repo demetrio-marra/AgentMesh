@@ -139,7 +139,7 @@ export function createDiagnosticsController() {
         const money = value => `$${Number(value).toFixed(6)}`;
         const tokenTableRows = tokenRows.map(row => {
             const step = row.step;
-            if (!step.isAgentic) return [step.stepName, summaryElapsed(step), "Unavailable", "Unavailable", "Unavailable", "Unavailable", "Unavailable", "Unavailable", "Unavailable"];
+            if (!step.isAgentic) return [step.stepName, summaryElapsed(step), "N/A", "N/A", "N/A", "N/A", "N/A", "N/A", "N/A"];
             const input = step.inputTokens || 0;
             const output = step.outputTokens || 0;
             return [step.stepName, summaryElapsed(step), input.toLocaleString(), percentage(input, totalInputTokens), money(inputCost(row)), output.toLocaleString(), percentage(output, totalOutputTokens), money(outputCost(row)), money(inputCost(row) + outputCost(row))];
