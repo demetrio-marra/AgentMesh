@@ -143,6 +143,26 @@ $env:Api__ApiKey = "<runtime-api-key>"
 dotnet run --project AgentMeshWeb
 ```
 
+### AgentMeshWeb with Docker
+
+Build the image from the repository root:
+
+```bash
+docker build -f AgentMeshWeb/Dockerfile -t agentmeshweb:local .
+```
+
+Run it with the upstream API configuration supplied at deployment time:
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e Api__BaseUrl=https://agentmesh-api.example.com/ \
+  -e Api__ApiKey=<runtime-api-key> \
+  -e Api__HeaderName=X-Api-Key \
+  agentmeshweb:local
+```
+
+The API key is read by the server and is never exposed to the browser. Do not place a credential in the Dockerfile, build arguments, or image inputs. The resulting image is suitable for Kubernetes deployment; this repository intentionally does not add Kubernetes manifests or Kubernetes-specific application configuration.
+
 The web host is an API-only client. `IChatContextStore` is the ownership boundary for browser-session conversation messages, token counters, and accumulated cost; the initial `InMemoryChatContextStore` is a single-instance, idle-expiring implementation. It intentionally loses chats on process restart and does not share sessions across replicas. Replace that interface through dependency injection with a persistent or distributed adapter when deploying multiple web instances.
 
 The interface accepts text-only messages. It relays workflow progress through SignalR, supports stop and new-chat commands, and renders Markdown using local `marked` and DOMPurify assets. It does not support file, image, audio, or video input.

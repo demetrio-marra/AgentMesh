@@ -39,16 +39,17 @@ dd { margin: 0; overflow-wrap: anywhere; }
 .chat-panel { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; }
 .diagnostics-modal { position: fixed; z-index: 3; inset: 0; display: grid; place-items: center; padding: 5vh 5vw; background: rgba(24, 34, 30, .42); }
 .diagnostics-modal[hidden] { display: none; }
-.diagnostics-dialog { width: min(1280px, 94vw); height: min(820px, 90vh); display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 14px; padding: 20px; border: 1px solid var(--line); background: var(--panel); box-shadow: 0 20px 60px rgba(24, 34, 30, .24); }
+.diagnostics-dialog { width: min(1280px, 94vw); max-width: 94vw; min-width: 0; height: min(820px, 90vh); display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 14px; padding: 20px; border: 1px solid var(--line); background: var(--panel); box-shadow: 0 20px 60px rgba(24, 34, 30, .24); }
 .diagnostics-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.diagnostics-tabs, .diagnostics-tabpanel { min-height: 0; }
-.diagnostics-tabs { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 12px; }
-.diagnostics-tablist { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.diagnostics-tabs, .diagnostics-tabpanel { min-width: 0; min-height: 0; }
+.diagnostics-tabs { width: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 12px; }
+.diagnostics-tablist { min-width: 0; display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); }
 .diagnostics-tab { border: 0; border-bottom: 2px solid transparent; padding: 8px 10px; background: transparent; color: var(--muted); }
 .diagnostics-tab.is-selected { border-bottom-color: var(--teal); color: var(--teal-dark); font-weight: 700; }
 .diagnostics-tabpanel[hidden] { display: none; }
 .diagnostics-tabpanel:not([hidden]) { display: flex; flex-direction: column; }
 .diagnostics-tabpanel:not([hidden]).diagnostics-steps-panel { display: grid; }
+.diagnostics-tabpanel:not([hidden]).diagnostics-parameters-panel { display: flex; min-height: 0; }
 .diagnostics-tabpanel:not([hidden])[aria-labelledby="diagnostics-raw-tab"] { display: grid; grid-template-rows: minmax(0, 1fr); }
 .diagnostics-summary-panel { min-height: 0; overflow: auto; }
 .diagnostics-summary { min-width: 760px; }
@@ -78,6 +79,15 @@ dd { margin: 0; overflow-wrap: anywhere; }
 .diagnostics-parameter-name, .diagnostics-parameter-value { min-width: 0; padding: 8px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; white-space: pre-wrap; }
 .diagnostics-parameter-name { background: #eff3e9; font-weight: 700; }
 .diagnostics-parameter-value { font-family: "Trebuchet MS", sans-serif; font-size: 13px; }
+.diagnostics-parameters-panel { width: 100%; min-height: 0; overflow: hidden; }
+.diagnostics-parameters-by-step { width: 100%; max-width: 100%; min-width: 0; min-height: 0; overflow: auto; }
+.diagnostics-parameters-table-wrap { width: max-content; min-width: 100%; border: 1px solid var(--line); }
+.diagnostics-parameters-table { min-width: 100%; border-collapse: collapse; table-layout: fixed; font-family: "Trebuchet MS", sans-serif; font-size: 13px; }
+.diagnostics-parameters-table th, .diagnostics-parameters-table td { min-width: 180px; max-width: 360px; padding: 8px; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: anywhere; white-space: pre-wrap; }
+.diagnostics-parameters-table th { background: #eff3e9; color: var(--muted); font-size: 12px; }
+.diagnostics-parameters-table th:first-child { position: sticky; left: 0; z-index: 1; min-width: 150px; background: var(--soft-green); }
+.diagnostics-parameters-table thead th { position: sticky; top: 0; z-index: 2; }
+.diagnostics-parameters-table thead th:first-child { z-index: 3; }
 .diagnostics-step-error { padding: 10px; background: #fae8e5; color: #8b261b; overflow-wrap: anywhere; }
 .diagnostics-output { width: 100%; height: auto; align-self: stretch; min-height: 100%; resize: none; overflow-y: auto; font-family: "Trebuchet MS", sans-serif; font-size: 13px; line-height: 1.45; }
 .diagnostics-configuration-panel { overflow: auto; padding: 4px; }
@@ -96,8 +106,8 @@ dd { margin: 0; overflow-wrap: anywhere; }
 .message-body th, .message-body td { border: 1px solid var(--line); padding: 6px; text-align: left; }
 .pending { border-color: #8bb7b0; background: #eef7f3; }
 .pending .message-body { color: var(--teal-dark); }
-.placeholder-spinner { display: inline-block; width: 12px; height: 12px; margin-left: 8px; border: 2px solid rgba(0, 75, 68, .25); border-top-color: var(--teal-dark); border-radius: 50%; vertical-align: -1px; animation: placeholder-spin .8s linear infinite; }
-@keyframes placeholder-spin { to { transform: rotate(360deg); } }
+.placeholder-spinner { display: inline-block; width: 12px; height: 12px; margin-left: 8px; border: 2px solid rgba(0, 75, 68, .25); border-top-color: var(--teal-dark); border-radius: 50%; vertical-align: -1px; transform: translateZ(0); transform-origin: center; will-change: transform; animation: placeholder-spin .8s linear infinite; }
+@keyframes placeholder-spin { from { transform: translateZ(0) rotate(0deg); } to { transform: translateZ(0) rotate(360deg); } }
 .message-elapsed { justify-self: end; color: var(--muted); font-family: "Trebuchet MS", sans-serif; font-size: 12px; }
 .message-error { border-color: #d88d82; background: #fae8e5; color: #8b261b; }
 .empty-state { color: var(--muted); margin: auto; }
@@ -115,7 +125,7 @@ textarea:focus { outline: 2px solid #6aa99f; outline-offset: 1px; }
     .control-button { padding: 7px 9px; }
     .chat-workspace { height: calc(100dvh - 58px); min-height: 0; display: block; }
     .diagnostics-modal { padding: 5vh 5vw; }
-    .diagnostics-dialog { width: 90vw; height: 86vh; padding: 14px; }
+    .diagnostics-dialog { width: 90vw; max-width: 90vw; height: 86vh; padding: 14px; }
     .diagnostics-summary-panel { overflow-x: auto; }
     .diagnostics-steps-panel { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(120px, .35fr) minmax(0, 1fr); gap: 10px; }
     .diagnostics-step-list { display: flex; overflow-x: auto; overflow-y: hidden; }
