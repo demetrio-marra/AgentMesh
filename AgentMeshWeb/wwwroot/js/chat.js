@@ -17,15 +17,18 @@
     const diagnosticsClose = document.getElementById("diagnostics-close");
     const diagnosticsSummaryTab = document.getElementById("diagnostics-summary-tab");
     const diagnosticsStepsTab = document.getElementById("diagnostics-steps-tab");
+    const diagnosticsParametersTab = document.getElementById("diagnostics-parameters-tab");
     const diagnosticsRawTab = document.getElementById("diagnostics-raw-tab");
     const diagnosticsConfigurationTab = document.getElementById("diagnostics-configuration-tab");
     const diagnosticsSummaryPanel = document.getElementById("diagnostics-summary-panel");
     const diagnosticsStepsPanel = document.getElementById("diagnostics-steps-panel");
+    const diagnosticsParametersPanel = document.getElementById("diagnostics-parameters-panel");
     const diagnosticsRawPanel = document.getElementById("diagnostics-raw-panel");
     const diagnosticsConfigurationPanel = document.getElementById("diagnostics-configuration-panel");
     const diagnosticsSummary = document.getElementById("diagnostics-summary");
     const diagnosticsStepList = document.getElementById("diagnostics-step-list");
     const diagnosticsStepDetails = document.getElementById("diagnostics-step-details");
+    const diagnosticsParametersByStep = document.getElementById("diagnostics-parameters-by-step");
     const discardWarning = "The conversation will be lost. Continue?";
     const diagnosticsEvents = [];
     let isActive = false;
@@ -140,21 +143,26 @@
     function setDiagnosticsTab(tab) {
         const showSummary = tab === "summary";
         const showSteps = tab === "steps";
+        const showParameters = tab === "parameters";
         const showConfiguration = tab === "configuration";
         diagnosticsSummaryTab.classList.toggle("is-selected", showSummary);
         diagnosticsStepsTab.classList.toggle("is-selected", showSteps);
+        diagnosticsParametersTab.classList.toggle("is-selected", showParameters);
         diagnosticsRawTab.classList.toggle("is-selected", tab === "raw");
         diagnosticsConfigurationTab.classList.toggle("is-selected", showConfiguration);
         diagnosticsSummaryTab.setAttribute("aria-selected", String(showSummary));
         diagnosticsStepsTab.setAttribute("aria-selected", String(showSteps));
+        diagnosticsParametersTab.setAttribute("aria-selected", String(showParameters));
         diagnosticsRawTab.setAttribute("aria-selected", String(tab === "raw"));
         diagnosticsConfigurationTab.setAttribute("aria-selected", String(showConfiguration));
         diagnosticsSummaryTab.tabIndex = showSummary ? 0 : -1;
         diagnosticsStepsTab.tabIndex = showSteps ? 0 : -1;
+        diagnosticsParametersTab.tabIndex = showParameters ? 0 : -1;
         diagnosticsRawTab.tabIndex = tab === "raw" ? 0 : -1;
         diagnosticsConfigurationTab.tabIndex = showConfiguration ? 0 : -1;
         diagnosticsSummaryPanel.hidden = !showSummary;
         diagnosticsStepsPanel.hidden = !showSteps;
+        diagnosticsParametersPanel.hidden = !showParameters;
         diagnosticsRawPanel.hidden = tab !== "raw";
         diagnosticsConfigurationPanel.hidden = !showConfiguration;
         if (tab === "raw") diagnosticsOutput.focus();
@@ -482,12 +490,74 @@
         }
     }
 
+    function renderParametersByStep() {
+        diagnosticsParametersByStep.replaceChildren();
+        const steps = [];
+        diagnosticsEvents.forEach(event => {
+            const payload = readPayload(event.rawData);
+            if (event.eventType === "workflowStepStarted") {
+                steps.push({
+                    name: typeof payload.stepName === "string" ? payload.stepName : "Unnamed step",
+                    parameters: [],
+                    complete: false
+                });
+            } else if (event.eventType === "workflowStepCompleted") {
+                const step = steps.find(candidate => !candidate.complete && candidate.name === payload.stepName);
+                if (!step) return;
+                step.complete = true;
+                step.parameters = parameterRows(Array.isArray(payload.parametersDiff)
+                    ? payload.parametersDiff.map(parameter => ({ name: parameter.name, value: parameter.newValue }))
+                    : []);
+            }
+        });
+        const parameters = [];
+        const parameterIndexes = new Map();
+        steps.forEach(step => step.parameters.forEach(parameter => {
+            if (parameterIndexes.has(parameter.name)) return;
+            parameterIndexes.set(parameter.name, parameters.length);
+            parameters.push(parameter.name);
+        }));
+
+        if (!steps.length || !parameters.length) {
+            const empty = document.createElement("p");
+            empty.className = "diagnostics-empty";
+            empty.textContent = "No step parameters received yet.";
+            diagnosticsParametersByStep.append(empty);
+            return;
+        }
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "diagnostics-parameters-table-wrap";
+        const table = document.createElement("table");
+        table.className = "diagnostics-parameters-table";
+        const head = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        summaryCell(headerRow, "Parameter", "th");
+        steps.forEach(step => summaryCell(headerRow, step.name, "th"));
+        head.append(headerRow);
+        table.append(head);
+        const body = document.createElement("tbody");
+        parameters.forEach(parameterName => {
+            const row = document.createElement("tr");
+            summaryCell(row, parameterName, "th");
+            steps.forEach(step => {
+                const parameter = step.parameters.find(candidate => candidate.name === parameterName);
+                summaryCell(row, parameter ? parameter.value : "");
+            });
+            body.append(row);
+        });
+        table.append(body);
+        wrapper.append(table);
+        diagnosticsParametersByStep.append(wrapper);
+    }
+
     function appendDiagnostics(event) {
         if (!event.rawData) return;
         diagnosticsEvents.push({ eventType: event.eventType, rawData: event.rawData });
         diagnosticsOutput.value = diagnosticsEvents.map(eventChunk => `{"eventType":${JSON.stringify(eventChunk.eventType)},"payload":${eventChunk.rawData}}`).join("\n\n");
         diagnosticsOutput.scrollTop = diagnosticsOutput.scrollHeight;
         renderDiagnosticsDetails();
+        renderParametersByStep();
     }
 
     function resetDiagnostics() {
@@ -496,6 +566,7 @@
         workflowSummary = null;
         diagnosticsOutput.value = "";
         renderDiagnosticsDetails();
+        renderParametersByStep();
         renderDiagnosticsSummary();
     }
 
@@ -595,23 +666,25 @@
     diagnosticsClose.addEventListener("click", () => setDiagnosticsVisible(false));
     diagnosticsSummaryTab.addEventListener("click", () => setDiagnosticsTab("summary"));
     diagnosticsStepsTab.addEventListener("click", () => setDiagnosticsTab("steps"));
+    diagnosticsParametersTab.addEventListener("click", () => setDiagnosticsTab("parameters"));
     diagnosticsRawTab.addEventListener("click", () => setDiagnosticsTab("raw"));
     diagnosticsConfigurationTab.addEventListener("click", () => setDiagnosticsTab("configuration"));
-    for (const tab of [diagnosticsSummaryTab, diagnosticsStepsTab, diagnosticsRawTab, diagnosticsConfigurationTab]) {
+    for (const tab of [diagnosticsSummaryTab, diagnosticsStepsTab, diagnosticsParametersTab, diagnosticsRawTab, diagnosticsConfigurationTab]) {
         tab.addEventListener("keydown", event => {
             if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
                 event.preventDefault();
-                const tabs = [diagnosticsSummaryTab, diagnosticsStepsTab, diagnosticsRawTab, diagnosticsConfigurationTab];
+                const tabs = [diagnosticsSummaryTab, diagnosticsStepsTab, diagnosticsParametersTab, diagnosticsRawTab, diagnosticsConfigurationTab];
                 const currentIndex = tabs.indexOf(tab);
                 const offset = event.key === "ArrowRight" ? 1 : -1;
                 const nextTab = tabs[(currentIndex + offset + tabs.length) % tabs.length];
-                setDiagnosticsTab(nextTab === diagnosticsSummaryTab ? "summary" : nextTab === diagnosticsStepsTab ? "steps" : nextTab === diagnosticsRawTab ? "raw" : "configuration");
+                setDiagnosticsTab(nextTab === diagnosticsSummaryTab ? "summary" : nextTab === diagnosticsStepsTab ? "steps" : nextTab === diagnosticsParametersTab ? "parameters" : nextTab === diagnosticsRawTab ? "raw" : "configuration");
                 nextTab.focus();
             }
         });
     }
 
     renderDiagnosticsSummary();
+    renderParametersByStep();
 
     connection.start()
         .then(() => connection.invoke("Initialize", chatId))
