@@ -1,5 +1,6 @@
 import { createMessageRenderer } from "./chat-dom.js";
 import { createDiagnosticsController } from "./chat-diagnostics.js";
+import { createNotificationController } from "./chat-notifications.js";
 
 (() => {
     const chatIdKey = "agentmesh-chat-id";
@@ -17,6 +18,7 @@ import { createDiagnosticsController } from "./chat-diagnostics.js";
     const discardWarning = "The conversation will be lost. Continue?";
     const renderer = createMessageRenderer({ transcript });
     const diagnostics = createDiagnosticsController();
+    const notifications = createNotificationController({ toastRegion: document.getElementById("terminal-toasts") });
     const connection = new window.signalR.HubConnectionBuilder()
         .withUrl("/hubs/chat")
         .withAutomaticReconnect()
@@ -25,9 +27,15 @@ import { createDiagnosticsController } from "./chat-diagnostics.js";
     let hasConversationContent = false;
     let isSubmitting = false;
     let committedMessageCount = 0;
+    let requestInProgress = false;
+    let terminalNotified = false;
 
     function setOperation(state) {
         isActive = state === "chat" || state === "summarizing";
+        if (isActive) {
+            requestInProgress = true;
+            terminalNotified = false;
+        }
         message.disabled = isActive || isSubmitting;
         send.hidden = isActive;
         stop.hidden = !isActive;
@@ -42,6 +50,8 @@ import { createDiagnosticsController } from "./chat-diagnostics.js";
 
     function resetChat() {
         if (hasConversationContent && !window.confirm(discardWarning)) return;
+        requestInProgress = false;
+        terminalNotified = true;
         renderer.clearPendingRequest();
         connection.invoke("NewChat", chatId);
     }
@@ -70,13 +80,26 @@ import { createDiagnosticsController } from "./chat-diagnostics.js";
     connection.on("Operation", state => {
         setOperation(state);
         if (state === "canceled") {
+            requestInProgress = false;
+            terminalNotified = true;
             renderer.clearPendingRequest();
             finishComposer();
         } else if (state === "failed") {
             renderer.renderFailure();
+            if (requestInProgress && !terminalNotified) {
+                terminalNotified = true;
+                requestInProgress = false;
+                notifications.notify("failed");
+            }
+        } else if (state === "idle" && requestInProgress && !terminalNotified) {
+            terminalNotified = true;
+            requestInProgress = false;
+            notifications.notify("completed");
         }
     });
     connection.onreconnected(() => {
+        requestInProgress = false;
+        terminalNotified = true;
         renderer.clearPendingRequest();
         finishComposer();
         connection.invoke("Initialize", chatId);
