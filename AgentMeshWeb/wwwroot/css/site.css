@@ -40,6 +40,14 @@ dd { margin: 0; overflow-wrap: anywhere; }
 .diagnostics-modal { position: fixed; z-index: 3; inset: 0; display: grid; place-items: center; padding: 5vh 5vw; background: rgba(24, 34, 30, .42); }
 .diagnostics-modal[hidden] { display: none; }
 .diagnostics-dialog { width: min(1280px, 94vw); max-width: 94vw; min-width: 0; height: min(820px, 90vh); display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 14px; padding: 20px; border: 1px solid var(--line); background: var(--panel); box-shadow: 0 20px 60px rgba(24, 34, 30, .24); }
+.parameter-detail-modal { position: fixed; z-index: 5; inset: 0; display: grid; place-items: center; padding: 5vh 5vw; background: rgba(24, 34, 30, .58); }
+.parameter-detail-modal[hidden] { display: none; }
+.parameter-detail-dialog { width: min(1050px, 94vw); height: min(620px, 80vh); min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 14px; padding: 20px; border: 1px solid var(--line); background: var(--panel); box-shadow: 0 20px 60px rgba(24, 34, 30, .32); }
+.diagnostics-parameter-detail-table { min-width: 0; min-height: 0; overflow: auto; }
+.diagnostics-parameter-detail-table .diagnostics-parameters-table-wrap { min-height: 100%; }
+.diagnostics-parameter-select { width: 100%; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; overflow-wrap: anywhere; }
+.diagnostics-parameter-select:hover, .diagnostics-parameter-select:focus-visible { color: var(--teal-dark); text-decoration: underline; }
+.diagnostics-parameter-select:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 .diagnostics-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .diagnostics-tabs, .diagnostics-tabpanel { min-width: 0; min-height: 0; }
 .diagnostics-tabs { width: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 12px; }
@@ -132,6 +140,8 @@ textarea:focus { outline: 2px solid #6aa99f; outline-offset: 1px; }
     .chat-workspace { height: calc(100dvh - 58px); min-height: 0; display: block; }
     .diagnostics-modal { padding: 5vh 5vw; }
     .diagnostics-dialog { width: 90vw; max-width: 90vw; height: 86vh; padding: 14px; }
+    .parameter-detail-modal { padding: 5vh 4vw; }
+    .parameter-detail-dialog { width: 92vw; height: min(76vh, 620px); padding: 14px; }
     .diagnostics-summary-panel { overflow-x: auto; }
     .diagnostics-steps-panel { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(120px, .35fr) minmax(0, 1fr); gap: 10px; }
     .diagnostics-step-list { display: flex; overflow-x: auto; overflow-y: hidden; }

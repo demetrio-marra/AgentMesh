@@ -21,8 +21,13 @@ export function createDiagnosticsController() {
     const stepList = document.getElementById("diagnostics-step-list");
     const stepDetails = document.getElementById("diagnostics-step-details");
     const parametersByStep = document.getElementById("diagnostics-parameters-by-step");
+    const parameterDetailModal = document.getElementById("diagnostics-parameter-detail-modal");
+    const parameterDetailTitle = document.getElementById("diagnostics-parameter-detail-title");
+    const parameterDetailClose = document.getElementById("diagnostics-parameter-detail-close");
+    const parameterDetailTable = document.getElementById("diagnostics-parameter-detail-table");
     const events = [];
     let selectedStep = -1;
+    let selectedParameter = null;
     let workflowSummary = null;
 
     function readPayload(rawData) {
@@ -223,22 +228,100 @@ export function createDiagnosticsController() {
         else { const pending = document.createElement("p"); pending.className = "diagnostics-pending"; pending.textContent = "Step is still in progress."; stepDetails.append(pending); }
     }
 
-    function renderParameters() {
-        parametersByStep.replaceChildren();
+    function deriveParameterMatrix() {
         const steps = [];
+        const parameterNames = [];
+        const seenParameters = new Set();
         events.forEach(event => {
             const payload = readPayload(event.rawData);
             if (event.eventType === "workflowStepStarted") steps.push({ name: payload.stepName || "Unnamed step", parameters: [], complete: false });
-            else if (event.eventType === "workflowStepCompleted") { const step = steps.find(candidate => !candidate.complete && candidate.name === payload.stepName); if (step) { step.complete = true; step.parameters = parameterRows(Array.isArray(payload.parametersDiff) ? payload.parametersDiff.map(parameter => ({ name: parameter.name, value: parameter.newValue })) : []); } }
+            else if (event.eventType === "workflowStepCompleted") {
+                const step = steps.find(candidate => !candidate.complete && candidate.name === payload.stepName);
+                if (step) {
+                    step.complete = true;
+                    step.parameters = parameterRows(Array.isArray(payload.parametersDiff) ? payload.parametersDiff.map(parameter => ({ name: parameter.name, value: parameter.newValue })) : []);
+                    step.parameters.forEach(parameter => {
+                        if (seenParameters.has(parameter.name)) return;
+                        seenParameters.add(parameter.name);
+                        parameterNames.push(parameter.name);
+                    });
+                }
+            }
         });
-        const parameterNames = [...new Set(steps.flatMap(step => step.parameters.map(parameter => parameter.name)))];
-        if (!steps.length || !parameterNames.length) { const empty = document.createElement("p"); empty.className = "diagnostics-empty"; empty.textContent = "No step parameters received yet."; parametersByStep.append(empty); return; }
+
+        return {
+            steps,
+            rows: parameterNames.map(name => ({
+                name,
+                values: steps.map(step => step.parameters.find(parameter => parameter.name === name)?.value ?? "")
+            }))
+        };
+    }
+
+    function createParameterTable(matrix, rows, onSelect = null) {
         const wrapper = document.createElement("div"); wrapper.className = "diagnostics-parameters-table-wrap";
         const table = document.createElement("table"); table.className = "diagnostics-parameters-table";
-        const header = document.createElement("tr"); cell(header, "Parameter", "th"); steps.forEach(step => cell(header, step.name, "th"));
+        const header = document.createElement("tr"); cell(header, "Parameter", "th"); matrix.steps.forEach(step => cell(header, step.name, "th"));
         const head = document.createElement("thead"); head.append(header); table.append(head);
-        const body = document.createElement("tbody"); parameterNames.forEach(name => { const row = document.createElement("tr"); cell(row, name, "th"); steps.forEach(step => cell(row, step.parameters.find(parameter => parameter.name === name)?.value || "")); body.append(row); });
-        table.append(body); wrapper.append(table); parametersByStep.append(wrapper);
+        const body = document.createElement("tbody");
+        rows.forEach(parameter => {
+            const row = document.createElement("tr");
+            const name = document.createElement("th"); name.scope = "row";
+            if (onSelect) {
+                const button = document.createElement("button");
+                button.type = "button"; button.className = "diagnostics-parameter-select"; button.dataset.parameterName = parameter.name; button.textContent = parameter.name;
+                button.addEventListener("click", () => onSelect(parameter.name));
+                name.append(button);
+            } else name.textContent = parameter.name;
+            row.append(name);
+            parameter.values.forEach(value => cell(row, value));
+            body.append(row);
+        });
+        table.append(body); wrapper.append(table);
+        return wrapper;
+    }
+
+    function renderParameterDetail(matrix) {
+        if (selectedParameter === null) return;
+        const parameter = matrix.rows.find(row => row.name === selectedParameter);
+        if (!parameter) return;
+        parameterDetailTitle.textContent = `Parameter transitions: ${selectedParameter}`;
+        const populatedColumns = parameter.values
+            .map((value, index) => ({ value, step: matrix.steps[index] }))
+            .filter(column => column.value !== "");
+        const detailMatrix = {
+            steps: populatedColumns.map(column => column.step)
+        };
+        parameterDetailTable.append(createParameterTable(detailMatrix, [{
+            name: parameter.name,
+            values: populatedColumns.map(column => column.value)
+        }]));
+    }
+
+    function renderParameters() {
+        parametersByStep.replaceChildren();
+        parameterDetailTable.replaceChildren();
+        const matrix = deriveParameterMatrix();
+        if (!matrix.steps.length || !matrix.rows.length) { const empty = document.createElement("p"); empty.className = "diagnostics-empty"; empty.textContent = "No step parameters received yet."; parametersByStep.append(empty); return; }
+        parametersByStep.append(createParameterTable(matrix, matrix.rows, openParameterDetail));
+        renderParameterDetail(matrix);
+    }
+
+    function openParameterDetail(name) {
+        selectedParameter = name;
+        renderParameters();
+        parameterDetailModal.hidden = false;
+        parameterDetailClose.focus();
+    }
+
+    function closeParameterDetail() {
+        if (parameterDetailModal.hidden) return;
+        const closedParameter = selectedParameter;
+        parameterDetailModal.hidden = true;
+        selectedParameter = null;
+        parameterDetailTitle.textContent = "Parameter details";
+        [...parametersByStep.querySelectorAll(".diagnostics-parameter-select")]
+            .find(button => button.dataset.parameterName === closedParameter)?.focus();
     }
 
     function setTab(tab) {
@@ -247,6 +330,11 @@ export function createDiagnosticsController() {
     }
 
     function setVisible(visible) {
+        if (!visible) {
+            parameterDetailModal.hidden = true;
+            selectedParameter = null;
+            parameterDetailTitle.textContent = "Parameter details";
+        }
         modal.hidden = !visible; toggle.setAttribute("aria-expanded", String(visible));
         if (visible) { setTab("summary"); tabs.summary.focus(); }
     }
@@ -258,11 +346,13 @@ export function createDiagnosticsController() {
         output.scrollTop = output.scrollHeight; renderSteps(); renderParameters();
     }
 
-    function reset() { events.length = 0; selectedStep = -1; workflowSummary = null; output.value = ""; renderSteps(); renderParameters(); renderSummary(); }
+    function reset() { events.length = 0; selectedStep = -1; selectedParameter = null; parameterDetailModal.hidden = true; parameterDetailTitle.textContent = "Parameter details"; workflowSummary = null; output.value = ""; renderSteps(); renderParameters(); renderSummary(); }
     function setSummary(value) { workflowSummary = value; renderSummary(); }
 
     toggle.addEventListener("click", () => setVisible(modal.hidden));
     close.addEventListener("click", () => setVisible(false));
+    parameterDetailClose.addEventListener("click", closeParameterDetail);
+    parameterDetailModal.addEventListener("click", event => { if (event.target === parameterDetailModal) closeParameterDetail(); });
     Object.entries(tabs).forEach(([name, tab]) => tab.addEventListener("click", () => setTab(name)));
     Object.entries(tabs).forEach(([name, tab]) => tab.addEventListener("keydown", event => {
         if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
