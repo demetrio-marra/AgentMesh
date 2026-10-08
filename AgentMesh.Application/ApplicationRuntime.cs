@@ -8,7 +8,7 @@ using AgentMesh.Infrastructure.JSSandbox;
 using AgentMesh.Infrastructure.LightRag.Configuration;
 using AgentMesh.Infrastructure.LightRag.Services;
 using AgentMesh.Infrastructure.Mem0;
-using AgentMesh.Infrastructure.OpenAIClient;
+using AgentMesh.Infrastructure.ChatCompletions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -26,7 +26,7 @@ public static class ApplicationRuntime
             loggingBuilder.AddConfiguration(configuration.GetSection("Logging"));
             loggingBuilder.AddConsole();
         });
-        services.AddSingleton<IOpenAIClientFactory, OpenAIClientFactory>();
+        services.AddSingleton<IOpenAIClientFactory, ChatCompletionsClientFactory>();
 
         services.AddSingleton<IEnumerable<AgentFlatConfigurationRecord>>(AgentConfigurationReadHelper.ReadAgentConfigurations(appSettings, AppContext.BaseDirectory).ToArray());
         services.AddScoped<IParameterStore, ParameterStore>();

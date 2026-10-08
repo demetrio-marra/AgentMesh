@@ -130,7 +130,7 @@ Create `AgentMesh.Application/Services/<AgentName>Agent.cs`.
 
 - Inherit from `AgentBase<TParsed>`, where `TParsed` is the intermediate parsed type returned by `ParseStructuredResponse` (commonly `string`, but can be a tuple or a custom type for structured outputs).
 - Implement `I<AgentName>Agent`.
-- Resolve the keyed `IOpenAIClient` using `[FromKeyedServices(<AgentName>AgentConfiguration.AgentName)]`.
+- Resolve the keyed `IChatCompletionsClient` using `[FromKeyedServices(<AgentName>AgentConfiguration.AgentName)]`.
 - Build the `List<AgentMessage>` inside `ExecuteAsync`, then call `ExecuteWithRetryAsync`.
 - Map the `AgentResponse<TParsed>` result onto the output DTO, including all token counts.
 - Implement `ParseStructuredResponse` to extract the structured data from the raw LLM text. Throw `BadStructuredResponseException` if the format is invalid � this triggers automatic retry via the `Resilience` policy.
@@ -152,7 +152,7 @@ namespace AgentMesh.Application.Services
         private readonly ILogger<<AgentName>Agent> _logger;
 
         public <AgentName>Agent(
-            [FromKeyedServices(<AgentName>AgentConfiguration.AgentName)] IOpenAIClient openAIClient,
+            [FromKeyedServices(<AgentName>AgentConfiguration.AgentName)] IChatCompletionsClient openAIClient,
             <AgentName>AgentConfiguration configuration,
             ILogger<<AgentName>Agent> logger) : base(logger, <AgentName>AgentConfiguration.AgentName, openAIClient)
         {
@@ -311,7 +311,7 @@ services
     .Services
     .AddSingleton(sp => sp.GetRequiredService<IOptions<<AgentName>AgentConfiguration>>().Value);
 
-services.AddKeyedSingleton<IOpenAIClient>(<AgentName>AgentConfiguration.AgentName, (sp, _) =>
+services.AddKeyedSingleton<IChatCompletionsClient>(<AgentName>AgentConfiguration.AgentName, (sp, _) =>
 {
     var factory = sp.GetRequiredService<IOpenAIClientFactory>();
     var config = sp.GetRequiredService<<AgentName>AgentConfiguration>();
@@ -328,8 +328,8 @@ services.AddSingleton<I<AgentName>Agent, <AgentName>Agent>();
 
 ### 2.3 Key Conventions
 
-- **Agent name constant** � `AgentName` in the configuration class is used as the DI key for the keyed `IOpenAIClient` and must be unique across all agents.
-- **Keyed `IOpenAIClient`** � Each agent gets its own `IOpenAIClient` instance registered as a keyed singleton, pre-configured with the agent's LLM, provider, temperature, and system prompt. Always resolve it with `[FromKeyedServices(...)]` in the constructor.
+- **Agent name constant** � `AgentName` in the configuration class is used as the DI key for the keyed `IChatCompletionsClient` and must be unique across all agents.
+- **Keyed `IChatCompletionsClient`** � Each agent gets its own `IChatCompletionsClient` instance registered as a keyed singleton, pre-configured with the agent's LLM, provider, temperature, and system prompt. Always resolve it with `[FromKeyedServices(...)]` in the constructor.
 - **Retry on parse failure** � Throw `BadStructuredResponseException` (or `EmptyAgentResponseException`) from `ParseStructuredResponse` to trigger the automatic retry policy defined in `Resilience`. Return `default(T)` only when the response is valid but intentionally empty.
 - **Token counts** � Always propagate `TotalTokenCount`, `InputTokenCount`, and `OutputTokenCount` from `AgentResponse<T>` to the output DTO.
 - **`SystemPromptFile` vs `SystemPrompt`** � Prefer `SystemPromptFile` in `appsettings.json` to keep prompts in dedicated `.txt` files. The `ResolveConfigText` helper in `Program.cs` resolves the file path at startup and populates `SystemPrompt` automatically.

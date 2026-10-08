@@ -1,13 +1,13 @@
 using AgentMesh.Application.Contracts;
-namespace AgentMesh.Infrastructure.OpenAIClient
+namespace AgentMesh.Infrastructure.ChatCompletions
 {
-    public class OpenAIClientFactory(IEnumerable<AgentFlatConfigurationRecord> agentFlatConfigurationRecords) : 
+    public class ChatCompletionsClientFactory(IEnumerable<AgentFlatConfigurationRecord> agentFlatConfigurationRecords) : 
         IOpenAIClientFactory
     {
-        public IOpenAIClient CreateOpenAIClient(string agentUniqueRole)
+        public IChatCompletionsClient CreateOpenAIClient(string agentUniqueRole)
         {
             var cfg = GetAgentConfiguration(agentUniqueRole);
-            return new OpenAIClient(cfg.ProviderModelName, 
+            return new ChatCompletionsClient(cfg.ProviderModelName, 
                 cfg.ProviderApiKey,
                 cfg.ProviderEndpoint, 
                 cfg.Temperature,
