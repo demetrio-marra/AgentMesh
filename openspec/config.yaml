@@ -30,7 +30,7 @@ context: |
     - SummarizationPipeline may run when token threshold is reached.
 
     External boundaries:
-    - IOpenAIClient (OpenAIClientFactory/OpenAIClient)
+    - IChatCompletionsClient (OpenAIClientFactory/OpenAIClient)
     - IKnowledgeService (LightRagKnowledgeService)
     - IAgentMemoryService (Mem0AgentMemoryService)
     - IRerankerService (CohereV1RerankerService)

@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Application", "Ag
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.JSSandbox", "AgentMesh.Infrastructure.JSSandbox\AgentMesh.Infrastructure.JSSandbox.csproj", "{0543A26D-8EE5-4A04-9494-599037FE02BE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.OpenAIClient", "AgentMesh.Infrastructure.OpenAIClient\AgentMesh.Infrastructure.OpenAIClient.csproj", "{23C51EC1-699F-42EB-A94E-60E36377ED2D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.ChatCompletions", "AgentMesh.Infrastructure.ChatCompletions\AgentMesh.Infrastructure.ChatCompletions.csproj", "{23C51EC1-699F-42EB-A94E-60E36377ED2D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.Mem0", "AgentMesh.Infrastructure.Mem0\AgentMesh.Infrastructure.Mem0.csproj", "{6495993B-79E4-4140-8EC5-AC5FFD784B97}"
 EndProject

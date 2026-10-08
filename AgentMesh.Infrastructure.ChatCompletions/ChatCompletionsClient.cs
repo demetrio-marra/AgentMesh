@@ -1,14 +1,14 @@
 using AgentMesh.Application.Contracts;
-namespace AgentMesh.Infrastructure.OpenAIClient
+namespace AgentMesh.Infrastructure.ChatCompletions
 {
-    public class OpenAIClient : IOpenAIClient
+    public class ChatCompletionsClient : IChatCompletionsClient
     {
         private readonly string _systemPrompt;
         private readonly float _temperature;
         private readonly ChatClient _client;
 
 
-        public OpenAIClient(string model, string apikey, string endpoint, string temperature, string systemPrompt)
+        public ChatCompletionsClient(string model, string apikey, string endpoint, string temperature, string systemPrompt)
         {
             if (model == null) throw new ArgumentNullException(nameof(model));
             if (apikey == null) throw new ArgumentNullException(nameof(apikey));

@@ -7,7 +7,7 @@ namespace AgentMesh.Application.Services.Agents
         Resilience resilience,
         IAgentInputSerializer agentInputSerializer) : IEWAgent
     {
-        private readonly IOpenAIClient _openAIClient = openAIClientFactory.CreateOpenAIClient(agentName);
+        private readonly IChatCompletionsClient _openAIClient = openAIClientFactory.CreateOpenAIClient(agentName);
 
         /// <summary>
         /// Executes the agent's main logic with retry mechanism. It sends the input messages to the OpenAI client, checks for empty responses, and parses the response into a structured format of type T. If the response is empty or if parsing fails (throwing a specialized exception), it triggers the retry logic defined in the Resilience class.

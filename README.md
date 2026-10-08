@@ -239,7 +239,7 @@ kubectl rollout status deployment/agentmesh-pipeline-a
 
 The framework integrates through these contracts:
 
-- `IOpenAIClient` via `OpenAIClientFactory` and `OpenAIClient`
+- `IChatCompletionsClient` via `ChatCompletionsClientFactory` and `ChatCompletionsClient`
 - `IKnowledgeService` via `LightRagKnowledgeService`
 - `IAgentMemoryService` via `Mem0AgentMemoryService`
 - `IRerankerService` via `CohereV1RerankerService`

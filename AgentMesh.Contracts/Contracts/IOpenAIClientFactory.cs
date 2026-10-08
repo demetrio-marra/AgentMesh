@@ -2,6 +2,6 @@ namespace AgentMesh.Application.Contracts
 {
     public interface IOpenAIClientFactory
     {
-        IOpenAIClient CreateOpenAIClient(string agentUniqueRole);
+        IChatCompletionsClient CreateOpenAIClient(string agentUniqueRole);
     }
 }
