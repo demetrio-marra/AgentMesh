@@ -8,8 +8,8 @@
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
-    <RootNamespace>AgentMesh</RootNamespace>
-    <StartupObject>AgentMesh.Program</StartupObject>
+    <RootNamespace>AgentMeshCLI</RootNamespace>
+    <StartupObject>AgentMeshCLI.Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>

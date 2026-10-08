@@ -1,6 +1,4 @@
-﻿using AgentMesh.Models.Costs;
-
-namespace AgentMesh.Models.Workflows
+﻿namespace AgentMesh.Models
 {
     /// <summary>
     /// Represents the comprehensive result produced by executing a pipeline workflow.

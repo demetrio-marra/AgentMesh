@@ -1,30 +1,31 @@
-namespace AgentMesh.Services;
-
-public enum WorkflowExecutionContextKind
+namespace AgentMesh.Services
 {
-    Chat,
-    Summarization
-}
+    public enum WorkflowExecutionContextKind
+    {
+        Chat,
+        Summarization
+    }
 
-public sealed class CallbackNotifierContext
-{
-    public Guid RequestId { get; set; }
+    public sealed class CallbackNotifierContext
+    {
+        public Guid RequestId { get; set; }
 
-    public WorkflowExecutionContextKind ExecutionKind { get; set; } = WorkflowExecutionContextKind.Chat;
+        public WorkflowExecutionContextKind ExecutionKind { get; set; } = WorkflowExecutionContextKind.Chat;
 
-    public Func<string, object, CancellationToken, Task>? StreamEventSink { get; set; }
+        public Func<string, object, CancellationToken, Task>? StreamEventSink { get; set; }
 
-    public CancellationToken StreamCancellationToken { get; set; }
+        public CancellationToken StreamCancellationToken { get; set; }
 
-    public string? WorkflowStartedCallbackUrl { get; set; }
+        public string? WorkflowStartedCallbackUrl { get; set; }
 
-    public string? WorkflowStepStartedCallbackUrl { get; set; }
+        public string? WorkflowStepStartedCallbackUrl { get; set; }
 
-    public string? WorkflowStepCompletedCallbackUrl { get; set; }
+        public string? WorkflowStepCompletedCallbackUrl { get; set; }
 
-    public string? WorkflowCompletedCallbackUrl { get; set; }
+        public string? WorkflowCompletedCallbackUrl { get; set; }
 
-    public string? WorkflowErrorCallbackUrl { get; set; }
+        public string? WorkflowErrorCallbackUrl { get; set; }
 
-    public bool IsActive => RequestId != Guid.Empty;
+        public bool IsActive => RequestId != Guid.Empty;
+    }
 }

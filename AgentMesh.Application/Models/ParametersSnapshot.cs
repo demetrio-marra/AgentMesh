@@ -1,4 +1,4 @@
-namespace AgentMesh.Models
+namespace AgentMesh.Application.Models
 {
     /// <summary>
     /// Immutable snapshot of parameter values at a point in time.

@@ -3,15 +3,15 @@ using System.ClientModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
-using AgentMesh.Application.Contracts;
-using AgentMesh.Application.Exceptions;
-using AgentMesh.Application.Models.ChatClient;
-using AgentMesh.Application.Models.ChatMessages;
+using AgentMesh.Contracts;
+using AgentMesh.Contracts.Exceptions;
+using AgentMesh.Contracts.Models.ChatClient;
+using AgentMesh.Contracts.Models.ChatMessages;
 using OpenAI.Responses;
 
 namespace AgentMesh.Infrastructure.Responses;
 
-public class ResponsesApiClient : IChatCompletionsClient
+public class ResponsesApiClient : IChatClient
 {
     private readonly IResponsesStreamClient _client;
     private readonly string _model;

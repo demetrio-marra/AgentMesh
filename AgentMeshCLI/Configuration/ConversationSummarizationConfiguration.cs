@@ -1,4 +1,4 @@
-namespace AgentMesh.Configuration
+namespace AgentMeshCLI.Configuration
 {
     public class ConversationSummarizationConfiguration
     {

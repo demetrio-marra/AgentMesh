@@ -2,7 +2,7 @@ using AgentMesh.Models;
 using AgentMesh.Services;
 using System.Reflection;
 
-namespace AgentMesh.Helpers
+namespace AgentMesh.Application.Helpers
 {
     internal static class AssemblyDiscoveryHelper
     {

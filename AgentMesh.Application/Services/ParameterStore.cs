@@ -1,7 +1,7 @@
 using AgentMesh.Models;
 using System.Collections.Concurrent;
 
-namespace AgentMesh.Services
+namespace AgentMesh.Application.Services
 {
     /// <summary>
     /// Thread-safe, atomic parameter value store with optimistic concurrency control.

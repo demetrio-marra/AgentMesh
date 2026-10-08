@@ -1,7 +1,6 @@
-using AgentMesh.Application.Contracts;
 namespace AgentMesh.Infrastructure.ChatCompletions
 {
-    public class ChatCompletionsClient : IChatCompletionsClient
+    public class ChatCompletionsClient : IChatClient
     {
         private readonly string _systemPrompt;
         private readonly float _temperature;

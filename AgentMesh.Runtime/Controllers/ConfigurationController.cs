@@ -1,11 +1,11 @@
-using AgentMesh.Authentication;
+using AgentMesh.Runtime.Authentication;
 using AgentMesh.Exceptions;
 using AgentMesh.Models;
-using AgentMesh.Models.Api;
+using AgentMesh.Runtime.Models.Api;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AgentMesh.Controllers
+namespace AgentMesh.Runtime.Controllers
 {
     /// <summary>
     /// Controller exposing a read-only summary of sandbox and agent configuration, equivalent to the CLI startup printout.

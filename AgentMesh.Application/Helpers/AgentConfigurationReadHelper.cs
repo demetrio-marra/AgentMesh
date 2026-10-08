@@ -1,7 +1,7 @@
 using AgentMesh.Application.Configuration;
-using AgentMesh.Configuration;
+using AgentMesh.Application.Configuration;
 
-namespace AgentMesh.Helpers
+namespace AgentMesh.Application.Helpers
 {
     public static class AgentConfigurationReadHelper
     {

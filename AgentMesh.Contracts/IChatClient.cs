@@ -1,9 +1,9 @@
-using AgentMesh.Application.Models.ChatClient;
-using AgentMesh.Application.Models.ChatMessages;
+using AgentMesh.Contracts.Models.ChatClient;
+using AgentMesh.Contracts.Models.ChatMessages;
 
-namespace AgentMesh.Application.Contracts
+namespace AgentMesh.Contracts
 {
-    public interface IChatCompletionsClient
+    public interface IChatClient
     {
         Task<ChatClientResponse> GenerateResponseAsync(IEnumerable<string> userInput, CancellationToken cancellationToken = default);
         Task<ChatClientResponse> GenerateResponseAsync(IEnumerable<AgentMessage> messages, CancellationToken cancellationToken = default);

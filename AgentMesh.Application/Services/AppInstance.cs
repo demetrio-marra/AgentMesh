@@ -1,8 +1,7 @@
 ﻿using System.Globalization;
 using System.Net.Http.Json;
 using AgentMesh.Infrastructure.JSSandbox;
-using AgentMesh.Models.Costs;
-using AgentMesh.Models.Workflows;
+using AgentMesh.Models;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AgentMesh.Application.Services

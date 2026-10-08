@@ -1,4 +1,4 @@
-﻿namespace AgentMesh.Utils
+namespace AgentMesh.Application.Utils
 {
     public static class ListsFormatter
     {

@@ -1,4 +1,4 @@
-namespace AgentMesh.Models
+namespace AgentMesh.Application.Models
 {
     /// <summary>
     /// Result of a TryCommit operation on the parameter store.

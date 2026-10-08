@@ -1,4 +1,4 @@
-﻿namespace AgentMesh.Utils
+namespace AgentMesh.Application.Utils
 {
     public class TypesUtils
     {

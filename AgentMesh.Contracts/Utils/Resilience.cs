@@ -1,11 +1,11 @@
-using AgentMesh.Application.Configuration;
-using AgentMesh.Application.Exceptions;
+using AgentMesh.Contracts.Configuration;
+using AgentMesh.Contracts.Exceptions;
 using Microsoft.Extensions.Logging;
 using Polly;
 using System.Net;
 using System.Net.Sockets;
 
-namespace AgentMesh.Application.Utils
+namespace AgentMesh.Contracts.Utils
 {
     public class Resilience(ResilienceConfiguration configuration)
     {

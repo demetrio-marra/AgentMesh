@@ -1,17 +1,18 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace AgentMeshWeb.Configuration;
-
-public sealed class ConversationSummarizationConfiguration
+namespace AgentMeshWeb.Configuration
 {
-    public const string SectionName = "ConversationSummarization";
+    public sealed class ConversationSummarizationConfiguration
+    {
+        public const string SectionName = "ConversationSummarization";
 
-    [Range(1, int.MaxValue)]
-    public int SummaryTokenThreshold { get; set; } = 4000;
+        [Range(1, int.MaxValue)]
+        public int SummaryTokenThreshold { get; set; } = 4000;
 
-    [Range(1, int.MaxValue)]
-    public int NumMessageToPreseve { get; set; } = 6;
+        [Range(1, int.MaxValue)]
+        public int NumMessageToPreseve { get; set; } = 6;
 
-    [Required]
-    public string SummarizeLanguage { get; set; } = "English";
+        [Required]
+        public string SummarizeLanguage { get; set; } = "English";
+    }
 }

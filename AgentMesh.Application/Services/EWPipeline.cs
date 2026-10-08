@@ -1,6 +1,6 @@
 using AgentMesh.Models;
 
-namespace AgentMesh.Services
+namespace AgentMesh.Application.Services
 {
     public abstract class EWPipeline(IWorkflowProgressNotifier workflowProgressNotifier,
         IParameterStore parameterStore,

@@ -1,5 +1,5 @@
 using AgentMesh.Services;
-using AgentMesh.Models.Rerank;
+using AgentMesh.Contracts.Models.Rerank;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;

@@ -1,8 +1,8 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using AgentMesh.Services;
-using AgentMesh.Models.Knowledge;
-using AgentMesh.Application.Utils;
+using AgentMesh.Contracts.Models.Knowledge;
+using AgentMesh.Contracts.Utils;
 using AgentMesh.Infrastructure.LightRag.Configuration;
 using AgentMesh.Infrastructure.LightRag.DTOs.QueryData;
 using Microsoft.Extensions.Logging;

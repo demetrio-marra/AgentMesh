@@ -1,4 +1,4 @@
-using AgentMesh.Models.Knowledge;
+using AgentMesh.Contracts.Models.Knowledge;
 
 namespace AgentMesh.Services
 {

@@ -1,4 +1,4 @@
-namespace AgentMesh.Models.CodeSandbox
+namespace AgentMesh.Contracts.Models.CodeSandbox
 {
     public enum SandboxResultType
     {

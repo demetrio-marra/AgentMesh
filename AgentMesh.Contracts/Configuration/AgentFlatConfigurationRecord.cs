@@ -1,4 +1,4 @@
-namespace AgentMesh.Application.Configuration
+namespace AgentMesh.Contracts.Configuration
 {
     public readonly record struct AgentFlatConfigurationRecord
     {

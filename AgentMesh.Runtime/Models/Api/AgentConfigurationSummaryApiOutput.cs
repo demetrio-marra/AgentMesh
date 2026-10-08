@@ -1,4 +1,4 @@
-namespace AgentMesh.Models.Api
+namespace AgentMesh.Runtime.Models.Api
 {
     /// <summary>
     /// Non-sensitive configuration summary for a single configured agent.

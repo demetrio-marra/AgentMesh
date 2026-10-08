@@ -1,4 +1,4 @@
-namespace AgentMesh.Models.Rerank
+namespace AgentMesh.Contracts.Models.Rerank
 {
     public readonly record struct RerankResult
     {

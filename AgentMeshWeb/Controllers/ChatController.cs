@@ -2,26 +2,27 @@ using AgentMeshWeb.Models;
 using AgentMeshWeb.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AgentMeshWeb.Controllers;
-
-public sealed class ChatController(IAgentMeshApiClient apiClient) : Controller
+namespace AgentMeshWeb.Controllers
 {
-    [HttpGet]
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    public sealed class ChatController(IAgentMeshApiClient apiClient) : Controller
     {
-        try
+        [HttpGet]
+        public async Task<IActionResult> Index(CancellationToken cancellationToken)
         {
-            return View(new ChatPageViewModel
+            try
             {
-                Configuration = await apiClient.GetConfigurationSummaryAsync(cancellationToken)
-            });
-        }
-        catch (Exception)
-        {
-            return View(new ChatPageViewModel
+                return View(new ChatPageViewModel
+                {
+                    Configuration = await apiClient.GetConfigurationSummaryAsync(cancellationToken)
+                });
+            }
+            catch (Exception)
             {
-                ConfigurationError = "Configuration details are currently unavailable."
-            });
+                return View(new ChatPageViewModel
+                {
+                    ConfigurationError = "Configuration details are currently unavailable."
+                });
+            }
         }
     }
 }

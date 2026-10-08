@@ -3,7 +3,7 @@ using AgentMesh.Runtime.Models;
 using AgentMesh.Models;
 using Microsoft.Extensions.Logging;
 
-namespace AgentMesh.Services
+namespace AgentMesh.Runtime.Services
 {
     /// <summary>
     /// Posts workflow progress events to the callback URLs configured for the current request scope.

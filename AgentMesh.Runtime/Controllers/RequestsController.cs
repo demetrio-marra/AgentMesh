@@ -1,14 +1,13 @@
 using System.Text.Json;
 using AgentMesh.Runtime.Models;
 using AgentMesh.Runtime.Models.Api;
-using AgentMesh.Authentication;
+using AgentMesh.Runtime.Authentication;
 using AgentMesh.Exceptions;
 using AgentMesh.Models;
-using AgentMesh.Models.Api;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AgentMesh.Controllers
+namespace AgentMesh.Runtime.Controllers
 {
     /// <summary>
     /// Controller for executing AI workflow requests across registered pipelines.

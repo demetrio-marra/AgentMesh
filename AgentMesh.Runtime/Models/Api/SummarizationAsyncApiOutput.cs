@@ -1,6 +1,7 @@
-namespace AgentMesh.Models.Api;
-
-public sealed class SummarizationAsyncApiOutput
+namespace AgentMesh.Runtime.Models.Api
 {
-    public Guid RequestId { get; set; }
+    public sealed class SummarizationAsyncApiOutput
+    {
+        public Guid RequestId { get; set; }
+    }
 }

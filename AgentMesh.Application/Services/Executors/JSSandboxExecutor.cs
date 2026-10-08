@@ -1,5 +1,5 @@
 using AgentMesh.Services;
-using AgentMesh.Models.CodeSandbox;
+using AgentMesh.Contracts.Models.CodeSandbox;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 

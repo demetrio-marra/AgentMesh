@@ -1,7 +1,7 @@
-using AgentMesh.Application.Models.AgentMemory;
+using AgentMesh.Contracts.Models.AgentMemory;
 using AgentMesh.Models;
 
-namespace AgentMesh.Application.Contracts
+namespace AgentMesh.Contracts
 {
     public interface IAgentMemoryService
     {

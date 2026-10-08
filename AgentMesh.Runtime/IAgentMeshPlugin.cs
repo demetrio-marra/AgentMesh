@@ -1,5 +1,6 @@
-namespace AgentMesh.Runtime;
-
-public interface IAgentMeshPlugin
+namespace AgentMesh.Runtime
 {
+    public interface IAgentMeshPlugin
+    {
+    }
 }

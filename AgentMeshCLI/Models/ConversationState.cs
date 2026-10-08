@@ -1,15 +1,16 @@
-namespace AgentMesh.Models;
-
-public sealed class ConversationState
+namespace AgentMeshCLI.Models
 {
-    public List<ContextMessage> Conversation { get; } = [];
-    public int TokensCount { get; set; }
-    public decimal CumulatedCost { get; set; }
-
-    public void Reset()
+    public sealed class ConversationState
     {
-        Conversation.Clear();
-        TokensCount = 0;
-        CumulatedCost = 0;
+        public List<ContextMessage> Conversation { get; } = [];
+        public int TokensCount { get; set; }
+        public decimal CumulatedCost { get; set; }
+
+        public void Reset()
+        {
+            Conversation.Clear();
+            TokensCount = 0;
+            CumulatedCost = 0;
+        }
     }
 }

@@ -1,10 +1,9 @@
-using AgentMesh.Application.Contracts;
 namespace AgentMesh.Infrastructure.ChatCompletions
 {
     public class ChatCompletionsClientFactory(IEnumerable<AgentFlatConfigurationRecord> agentFlatConfigurationRecords) : 
-        IOpenAIClientFactory
+        IChatClientFactory
     {
-        public IChatCompletionsClient CreateOpenAIClient(string agentUniqueRole)
+        public IChatClient CreateChatClient(string agentUniqueRole)
         {
             var cfg = GetAgentConfiguration(agentUniqueRole);
             return new ChatCompletionsClient(cfg.ProviderModelName, 

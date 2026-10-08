@@ -1,4 +1,4 @@
-namespace AgentMesh.Models.Api
+namespace AgentMesh.Runtime.Models.Api
 {
     /// <summary>
     /// Response payload returned immediately by the asynchronous request endpoint, before the workflow has finished executing.

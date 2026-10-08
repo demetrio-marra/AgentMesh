@@ -1,9 +1,9 @@
-﻿using AgentMesh.Models;
-using AgentMesh.Utils;
+using AgentMesh.Models;
+using AgentMesh.Application.Utils;
 using System.Globalization;
 using System.Text.Json;
 
-namespace AgentMesh.Services
+namespace AgentMesh.Application.Services
 {
     public class DefaultEWParameterSerializer : IEWParameterSerializer
     {

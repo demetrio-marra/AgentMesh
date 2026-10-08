@@ -1,4 +1,4 @@
-using AgentMesh.Application.Contracts;
+using AgentMesh.Contracts;
 namespace AgentMesh.Infrastructure.Mem0
 {
     public class Mem0AgentMemoryService : IAgentMemoryService

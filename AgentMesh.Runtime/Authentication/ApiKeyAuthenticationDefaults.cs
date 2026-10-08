@@ -1,4 +1,4 @@
-namespace AgentMesh.Authentication
+namespace AgentMesh.Runtime.Authentication
 {
     internal static class ApiKeyAuthenticationDefaults
     {

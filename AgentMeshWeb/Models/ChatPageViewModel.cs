@@ -1,7 +1,8 @@
-namespace AgentMeshWeb.Models;
-
-public sealed class ChatPageViewModel
+namespace AgentMeshWeb.Models
 {
-    public ConfigurationSummaryApiOutput? Configuration { get; init; }
-    public string? ConfigurationError { get; init; }
+    public sealed class ChatPageViewModel
+    {
+        public ConfigurationSummaryApiOutput? Configuration { get; init; }
+        public string? ConfigurationError { get; init; }
+    }
 }

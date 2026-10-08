@@ -1,6 +1,6 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 
-namespace AgentMesh.Utils
+namespace AgentMesh.Application.Utils
 {
     public static class SerializationUtils
     {

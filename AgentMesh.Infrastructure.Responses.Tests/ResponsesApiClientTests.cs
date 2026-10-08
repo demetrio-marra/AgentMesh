@@ -1,6 +1,6 @@
 #pragma warning disable OPENAI001
-using AgentMesh.Application.Exceptions;
-using AgentMesh.Application.Models.ChatMessages;
+using AgentMesh.Contracts.Exceptions;
+using AgentMesh.Contracts.Models.ChatMessages;
 using AgentMesh.Infrastructure.Responses;
 using OpenAI.Responses;
 using Xunit;

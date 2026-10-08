@@ -1,4 +1,4 @@
-using AgentMesh.Utils;
+using AgentMesh.Application.Utils;
 
 namespace AgentMesh.Application.Models.AgentMemory
 {

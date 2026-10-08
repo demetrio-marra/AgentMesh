@@ -1,4 +1,4 @@
-using AgentMesh.Models.CodeSandbox;
+using AgentMesh.Contracts.Models.CodeSandbox;
 
 namespace AgentMesh.Services
 {

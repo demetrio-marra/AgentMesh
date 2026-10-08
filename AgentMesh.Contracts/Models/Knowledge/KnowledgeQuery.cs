@@ -1,4 +1,4 @@
-namespace AgentMesh.Models.Knowledge
+namespace AgentMesh.Contracts.Models.Knowledge
 {
     public class KnowledgeQuery
     {

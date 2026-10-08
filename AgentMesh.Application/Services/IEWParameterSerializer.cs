@@ -1,4 +1,4 @@
-﻿namespace AgentMesh.Services
+namespace AgentMesh.Application.Services
 {
     public interface IEWParameterSerializer
     {

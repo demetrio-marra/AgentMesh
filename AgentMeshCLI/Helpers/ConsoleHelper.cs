@@ -1,6 +1,6 @@
-﻿using AgentMesh.Models;
+using AgentMeshCLI.Models;
 
-namespace AgentMesh.Helpers
+namespace AgentMeshCLI.Helpers
 {
     internal class ConsoleHelper
     {

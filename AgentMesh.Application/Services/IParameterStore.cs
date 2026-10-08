@@ -1,6 +1,6 @@
 using AgentMesh.Models;
 
-namespace AgentMesh.Services
+namespace AgentMesh.Application.Services
 {
     /// <summary>
     /// Contract for a thread-safe, atomic parameter value store.

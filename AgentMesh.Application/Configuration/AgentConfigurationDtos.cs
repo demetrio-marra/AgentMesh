@@ -1,4 +1,4 @@
-namespace AgentMesh.Configuration
+namespace AgentMesh.Application.Configuration
 {
     public sealed class AppSettingsConfigurationDto
     {

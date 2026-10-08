@@ -51,7 +51,7 @@
                 {
                     elapsedParts.Add($"{elapsed.Seconds}s");
                 }
-                
+            
                 if (elapsedParts.Count == 0)
                 {
                     return "<1s";

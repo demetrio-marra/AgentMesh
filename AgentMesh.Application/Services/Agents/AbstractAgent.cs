@@ -1,13 +1,13 @@
-using AgentMesh.Application.Contracts;
+using AgentMesh.Contracts;
 namespace AgentMesh.Application.Services.Agents
 {
     public abstract partial class AbstractAgent<T>(ILogger logger,
         string agentName,
-        IOpenAIClientFactory openAIClientFactory,
+        IChatClientFactory chatClientFactory,
         Resilience resilience,
         IAgentInputSerializer agentInputSerializer) : IEWAgent
     {
-        private readonly IChatCompletionsClient _openAIClient = openAIClientFactory.CreateOpenAIClient(agentName);
+        private readonly IChatClient _chatClient = chatClientFactory.CreateChatClient(agentName);
 
         /// <summary>
         /// Executes the agent's main logic with retry mechanism. It sends the input messages to the OpenAI client, checks for empty responses, and parses the response into a structured format of type T. If the response is empty or if parsing fails (throwing a specialized exception), it triggers the retry logic defined in the Resilience class.
@@ -31,7 +31,7 @@ namespace AgentMesh.Application.Services.Agents
 
             var result = await resilience.AgentRunWithRetryAsync(async () =>
             {
-                var response = await _openAIClient.GenerateResponseAsync(inputMessages, cancellationToken);
+                var response = await _chatClient.GenerateResponseAsync(inputMessages, cancellationToken);
                 var responseText = response.Text?.Trim() ?? string.Empty;
 
                 if (string.IsNullOrWhiteSpace(responseText))

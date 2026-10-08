@@ -1,4 +1,4 @@
-namespace AgentMesh.Models.Api
+namespace AgentMesh.Runtime.Models.Api
 {
     /// <summary>
     /// Structured configuration summary equivalent to the CLI startup printout: sandbox and per-agent configuration.

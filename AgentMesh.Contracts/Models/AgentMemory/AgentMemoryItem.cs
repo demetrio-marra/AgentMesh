@@ -1,4 +1,4 @@
-namespace AgentMesh.Application.Models.AgentMemory
+namespace AgentMesh.Contracts.Models.AgentMemory
 {
     public class AgentMemoryItem
     {

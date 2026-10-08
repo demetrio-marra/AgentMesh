@@ -1,4 +1,4 @@
-namespace AgentMesh.Configuration
+namespace AgentMesh.Runtime.Configuration
 {
     public sealed class ApiKeyAuthenticationConfiguration
     {

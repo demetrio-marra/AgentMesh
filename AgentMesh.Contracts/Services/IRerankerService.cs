@@ -1,4 +1,4 @@
-using AgentMesh.Models.Rerank;
+using AgentMesh.Contracts.Models.Rerank;
 
 namespace AgentMesh.Services
 {

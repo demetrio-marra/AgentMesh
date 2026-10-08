@@ -1,4 +1,4 @@
-namespace AgentMesh.Application.Exceptions
+namespace AgentMesh.Contracts.Exceptions
 {
     public abstract class BadAgentResponseException : Exception
     {

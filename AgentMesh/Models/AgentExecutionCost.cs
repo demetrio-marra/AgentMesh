@@ -1,4 +1,4 @@
-namespace AgentMesh.Models.Costs
+namespace AgentMesh.Models
 {
     /// <summary>
     /// Itemized financial cost and token breakdown for an AI agent's execution.

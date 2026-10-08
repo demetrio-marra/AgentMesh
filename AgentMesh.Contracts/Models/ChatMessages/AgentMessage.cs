@@ -1,4 +1,4 @@
-namespace AgentMesh.Application.Models.ChatMessages
+namespace AgentMesh.Contracts.Models.ChatMessages
 {
     public class AgentMessage
     {

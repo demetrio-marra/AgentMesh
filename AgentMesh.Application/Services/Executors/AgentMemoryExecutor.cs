@@ -1,4 +1,4 @@
-using AgentMesh.Application.Contracts;
+using AgentMesh.Contracts;
 namespace AgentMesh.Application.Services.Executors
 {
     public class AgentMemoryExecutor(IAgentMemoryService agentMemoryService,

@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using AgentMesh.Models;
 
-namespace AgentMesh.Models.Api
+namespace AgentMesh.Runtime.Models.Api
 {
     /// <summary>
     /// Input payload for processing a chat or workflow request asynchronously via the API, with optional progress callback URLs.
