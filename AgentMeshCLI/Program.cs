@@ -1,9 +1,3 @@
-using AgentMeshCLI.Configuration;
-using AgentMeshCLI.Services;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
-
 namespace AgentMeshCLI
 {
     internal static class Program

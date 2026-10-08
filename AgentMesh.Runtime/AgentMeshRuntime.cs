@@ -4,7 +4,6 @@ using AgentMesh.Application;
 using AgentMesh.Runtime.Authentication;
 using AgentMesh.Runtime.Configuration;
 using AgentMesh.Runtime.Services;
-using AgentMesh.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;

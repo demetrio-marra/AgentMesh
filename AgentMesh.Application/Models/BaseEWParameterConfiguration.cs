@@ -1,5 +1,3 @@
-using AgentMesh.Services;
-
 namespace AgentMesh.Application.Models
 {
     public abstract class BaseEWParameterConfiguration<T>() : IEWParameterConfiguration

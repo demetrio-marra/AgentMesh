@@ -1,5 +1,3 @@
-using AgentMesh.Application.Utils;
-
 namespace AgentMesh.Application.Models.AgentMemory
 {
     /// <summary>

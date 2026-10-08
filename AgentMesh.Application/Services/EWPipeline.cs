@@ -1,5 +1,3 @@
-using AgentMesh.Models;
-
 namespace AgentMesh.Application.Services
 {
     public abstract class EWPipeline(IWorkflowProgressNotifier workflowProgressNotifier,

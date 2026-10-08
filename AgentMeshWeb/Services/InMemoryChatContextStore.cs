@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using AgentMeshWeb.Configuration;
-using AgentMeshWeb.Models;
 using Microsoft.Extensions.Options;
 
 namespace AgentMeshWeb.Services

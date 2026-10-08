@@ -3,10 +3,6 @@ using System.ClientModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
-using AgentMesh.Contracts;
-using AgentMesh.Contracts.Exceptions;
-using AgentMesh.Contracts.Models.ChatClient;
-using AgentMesh.Contracts.Models.ChatMessages;
 using OpenAI.Responses;
 
 namespace AgentMesh.Infrastructure.Responses;

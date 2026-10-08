@@ -1,5 +1,3 @@
-using AgentMesh.Services;
-
 namespace AgentMesh.Application.Models
 {
     public interface IEWParameterConfiguration

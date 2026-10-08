@@ -10,6 +10,5 @@ global using AgentMesh.Contracts.Configuration;
 global using AgentMesh.Contracts.Exceptions;
 global using AgentMesh.Contracts.Models.ChatClient;
 global using AgentMesh.Contracts.Models.ChatMessages;
-global using AgentMesh.Models;
 global using OpenAI;
 global using OpenAI.Chat;

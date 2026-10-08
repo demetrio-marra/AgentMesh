@@ -1,7 +1,4 @@
-﻿using AgentMesh.Application.Models.Agents;
-using AgentMesh.Application.Models.ChatMessages;
-
-namespace AgentMesh.Application.Services.Helpers
+﻿namespace AgentMesh.Application.Services.Helpers
 {
     public interface IAgentInputSerializer
     {
