@@ -1,0 +1,23 @@
+name: Trigger GitLab CI
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+jobs:
+  trigger-gitlab:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Trigger GitLab pipeline
+        run: |
+          CURL_CMD=(curl -sS -D - --fail-with-body -X POST "https://gitlab.com/api/v4/projects/${{ secrets.GITLAB_PROJECT_ID }}/trigger/pipeline"
+            -F token=${{ secrets.GITLAB_TRIGGER_TOKEN }}
+            -F ref=${{ github.ref_name }}) 
+          
+          "${CURL_CMD[@]}"
