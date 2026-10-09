@@ -361,9 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/AgentMeshCLI/appsettings.Development.json
-/AgentMesh.Infrastructure.JSSandbox/Sandbox/demrootca.cer
-/AgentMesh.Infrastructure.JSSandbox/Sandbox/rootca.cer
+/src/AgentMeshCLI/appsettings.Development.json
+/src/AgentMesh.Infrastructure.JSSandbox/Sandbox/demrootca.cer
+/src/AgentMesh.Infrastructure.JSSandbox/Sandbox/rootca.cer
 /AgentMesh.Api/appsettings.Api.Development.json
 /AgentMesh.Api/appsettings.Development.json
 /samples/AgentMesh.DefaultPipelinePlugin/appsettings.Development.json

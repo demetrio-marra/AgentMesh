@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AgentMesh.Infrastructure.Responses\AgentMesh.Infrastructure.Responses.csproj" />
+    <ProjectReference Include="..\..\src\AgentMesh.Infrastructure.Responses\AgentMesh.Infrastructure.Responses.csproj" />
   </ItemGroup>
 
 </Project>

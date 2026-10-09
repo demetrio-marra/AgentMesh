@@ -3,33 +3,33 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36705.20
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh", "AgentMesh\AgentMesh.csproj", "{FB3C4DBA-DAF8-4DFF-852C-E13E4E477F65}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh", "src\AgentMesh\AgentMesh.csproj", "{FB3C4DBA-DAF8-4DFF-852C-E13E4E477F65}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMeshCLI", "AgentMeshCLI\AgentMeshCLI.csproj", "{7FDE1EAC-C3ED-4B24-BE90-BAFCF0479343}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMeshCLI", "src\AgentMeshCLI\AgentMeshCLI.csproj", "{7FDE1EAC-C3ED-4B24-BE90-BAFCF0479343}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Application", "AgentMesh.Application\AgentMesh.Application.csproj", "{F9308EF0-FCF0-4C5E-B824-AE2C80CF5533}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Application", "src\AgentMesh.Application\AgentMesh.Application.csproj", "{F9308EF0-FCF0-4C5E-B824-AE2C80CF5533}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.JSSandbox", "AgentMesh.Infrastructure.JSSandbox\AgentMesh.Infrastructure.JSSandbox.csproj", "{0543A26D-8EE5-4A04-9494-599037FE02BE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.JSSandbox", "src\AgentMesh.Infrastructure.JSSandbox\AgentMesh.Infrastructure.JSSandbox.csproj", "{0543A26D-8EE5-4A04-9494-599037FE02BE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.ChatCompletions", "AgentMesh.Infrastructure.ChatCompletions\AgentMesh.Infrastructure.ChatCompletions.csproj", "{23C51EC1-699F-42EB-A94E-60E36377ED2D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.ChatCompletions", "src\AgentMesh.Infrastructure.ChatCompletions\AgentMesh.Infrastructure.ChatCompletions.csproj", "{23C51EC1-699F-42EB-A94E-60E36377ED2D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.Mem0", "AgentMesh.Infrastructure.Mem0\AgentMesh.Infrastructure.Mem0.csproj", "{6495993B-79E4-4140-8EC5-AC5FFD784B97}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.Mem0", "src\AgentMesh.Infrastructure.Mem0\AgentMesh.Infrastructure.Mem0.csproj", "{6495993B-79E4-4140-8EC5-AC5FFD784B97}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.LightRag", "AgentMesh.Infrastructure.LightRag\AgentMesh.Infrastructure.LightRag.csproj", "{E5EACB55-95C7-4FA2-AF7B-DBE4A48ACB8B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.LightRag", "src\AgentMesh.Infrastructure.LightRag\AgentMesh.Infrastructure.LightRag.csproj", "{E5EACB55-95C7-4FA2-AF7B-DBE4A48ACB8B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.Cohere", "AgentMesh.Infrastructure.Cohere\AgentMesh.Infrastructure.Cohere.csproj", "{0D80483D-EEAD-4121-B465-63FAD61C01F0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.Cohere", "src\AgentMesh.Infrastructure.Cohere\AgentMesh.Infrastructure.Cohere.csproj", "{0D80483D-EEAD-4121-B465-63FAD61C01F0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Runtime", "AgentMesh.Runtime\AgentMesh.Runtime.csproj", "{1ED0490D-9A9A-49F5-B475-01E8C11F27E1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Runtime", "src\AgentMesh.Runtime\AgentMesh.Runtime.csproj", "{1ED0490D-9A9A-49F5-B475-01E8C11F27E1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CallbackViewer", "CallbackViewer\CallbackViewer.csproj", "{D6308C64-84DD-41C9-BBE2-61B664622995}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CallbackViewer", "src\CallbackViewer\CallbackViewer.csproj", "{D6308C64-84DD-41C9-BBE2-61B664622995}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Contracts", "AgentMesh.Contracts\AgentMesh.Contracts.csproj", "{B264E4F2-384C-4557-8EBD-159458E0DE3C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Contracts", "src\AgentMesh.Contracts\AgentMesh.Contracts.csproj", "{B264E4F2-384C-4557-8EBD-159458E0DE3C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMeshWeb", "AgentMeshWeb\AgentMeshWeb.csproj", "{7A42187B-04D9-49C4-81CD-D9D93B611D7D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMeshWeb", "src\AgentMeshWeb\AgentMeshWeb.csproj", "{7A42187B-04D9-49C4-81CD-D9D93B611D7D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.Responses", "AgentMesh.Infrastructure.Responses\AgentMesh.Infrastructure.Responses.csproj", "{C1F9BA43-32A3-4E69-81F7-D93D41F92525}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.Responses", "src\AgentMesh.Infrastructure.Responses\AgentMesh.Infrastructure.Responses.csproj", "{C1F9BA43-32A3-4E69-81F7-D93D41F92525}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.Responses.Tests", "AgentMesh.Infrastructure.Responses.Tests\AgentMesh.Infrastructure.Responses.Tests.csproj", "{CFDDAF0B-3A0F-4472-B005-AFDB25CC9877}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AgentMesh.Infrastructure.Responses.Tests", "tests\AgentMesh.Infrastructure.Responses.Tests\AgentMesh.Infrastructure.Responses.Tests.csproj", "{CFDDAF0B-3A0F-4472-B005-AFDB25CC9877}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

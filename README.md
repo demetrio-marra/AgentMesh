@@ -80,7 +80,7 @@ Swagger is available at `/swagger`. The API key is read from the plugin configur
 
 ## Streaming Requests
 
-The CLI uses the outbound-only streaming endpoints, so it does not listen for callbacks or send callback URLs. Configure `AgentMeshCLI/appsettings.json` with the API base URL, API key, and API key header name:
+The CLI uses the outbound-only streaming endpoints, so it does not listen for callbacks or send callback URLs. Configure `src/AgentMeshCLI/appsettings.json` with the API base URL, API key, and API key header name:
 
 ```json
 {
@@ -115,7 +115,7 @@ Streaming deployments must allow long-lived, unbuffered responses. Configure ing
 
 `AgentMeshWeb` is a standalone ASP.NET Core MVC client for an AgentMesh Runtime API. It has no reference to AgentMesh framework, application, runtime, or infrastructure projects. Its server performs the authenticated HTTP and SSE calls; the browser receives only rendered MVC content and SignalR chat events.
 
-Configure the web host through `AgentMeshWeb/appsettings.json` or environment variables. Keep `Api:ApiKey` out of source control and set it in the environment for local and deployed instances:
+Configure the web host through `src/AgentMeshWeb/appsettings.json` or environment variables. Keep `Api:ApiKey` out of source control and set it in the environment for local and deployed instances:
 
 ```json
 {
@@ -140,7 +140,7 @@ Start the Runtime/plugin service first, then start the web host separately:
 ```powershell
 dotnet run --project <plugin-project>
 $env:Api__ApiKey = "<runtime-api-key>"
-dotnet run --project AgentMeshWeb
+dotnet run --project src/AgentMeshWeb
 ```
 
 ### AgentMeshWeb with Docker
@@ -148,7 +148,7 @@ dotnet run --project AgentMeshWeb
 Build the image from the repository root:
 
 ```bash
-docker build -f AgentMeshWeb/Dockerfile -t agentmeshweb:local .
+docker build -f src/AgentMeshWeb/Dockerfile -t agentmeshweb:local .
 ```
 
 Run it with the upstream API configuration supplied at deployment time:
@@ -172,8 +172,8 @@ The interface accepts text-only messages. It relays workflow progress through Si
 Pack the plugin-facing Runtime package and its core dependency:
 
 ```bash
-dotnet pack AgentMesh/AgentMesh.csproj -c Release
-dotnet pack AgentMesh.Runtime/AgentMesh.Runtime.csproj -c Release
+dotnet pack src/AgentMesh/AgentMesh.csproj -c Release
+dotnet pack src/AgentMesh.Runtime/AgentMesh.Runtime.csproj -c Release
 ```
 
 The Runtime package exposes `AgentMesh.Runtime.dll` and bundles `AgentMesh.Application.dll` plus required framework assemblies under its target-framework assets. Plugin consumers restore Runtime as a NuGet package.

@@ -1,9 +1,3 @@
-#pragma warning disable OPENAI001
-using AgentMesh.Contracts.Exceptions;
-using AgentMesh.Contracts.Models.ChatMessages;
-using OpenAI.Responses;
-using Xunit;
-
 namespace AgentMesh.Infrastructure.Responses.Tests;
 
 public class ResponsesApiClientTests
@@ -144,4 +138,3 @@ public class ResponsesApiClientTests
         }
     }
 }
-#pragma warning restore OPENAI001

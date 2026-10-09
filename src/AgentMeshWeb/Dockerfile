@@ -1,10 +1,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-COPY AgentMeshWeb/AgentMeshWeb.csproj AgentMeshWeb/
+COPY src/AgentMeshWeb/AgentMeshWeb.csproj AgentMeshWeb/
 RUN dotnet restore AgentMeshWeb/AgentMeshWeb.csproj
 
-COPY AgentMeshWeb/. AgentMeshWeb/
+COPY src/AgentMeshWeb/. AgentMeshWeb/
 RUN dotnet publish AgentMeshWeb/AgentMeshWeb.csproj -c Release --no-restore -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
