@@ -1,3 +1,9 @@
+#pragma warning disable OPENAI001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+using AgentMesh.Contracts.Exceptions;
+using AgentMesh.Contracts.Models.ChatMessages;
+using OpenAI.Responses;
+using Xunit;
+
 namespace AgentMesh.Infrastructure.Responses.Tests;
 
 public class ResponsesApiClientTests
@@ -13,6 +19,7 @@ public class ResponsesApiClientTests
         Assert.Equal("answer", result.Text);
         Assert.Equal(3, stream.Options!.InputItems.Count);
         Assert.Equal("system", ((MessageResponseItem)stream.Options.InputItems[0]).Role.ToString(), ignoreCase: true);
+
         Assert.Equal("user", ((MessageResponseItem)stream.Options.InputItems[1]).Role.ToString(), ignoreCase: true);
         Assert.Equal("first", ((MessageResponseItem)stream.Options.InputItems[1]).Content[0].Text);
         Assert.Equal("second", ((MessageResponseItem)stream.Options.InputItems[2]).Content[0].Text);
@@ -138,3 +145,4 @@ public class ResponsesApiClientTests
         }
     }
 }
+#pragma warning restore OPENAI001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
