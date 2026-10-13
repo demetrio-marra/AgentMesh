@@ -13,9 +13,14 @@ namespace AgentMesh.Infrastructure.JSSandbox
         private readonly HttpClient _httpClient;
 
         public SESJSSandboxClient(SESJSSandboxConfiguration configuration)
+            : this(configuration, new HttpClientHandler())
+        {
+        }
+
+        internal SESJSSandboxClient(SESJSSandboxConfiguration configuration, HttpMessageHandler handler)
         {
             _sandboxName = configuration.SandboxName;
-            _httpClient = new HttpClient
+            _httpClient = new HttpClient(handler)
             {
                 BaseAddress = new Uri(configuration.SandboxServiceURL)
             };

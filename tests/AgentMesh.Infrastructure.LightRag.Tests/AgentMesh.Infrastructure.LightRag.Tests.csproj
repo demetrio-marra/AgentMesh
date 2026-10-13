@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AgentMesh.Infrastructure.LightRag\AgentMesh.Infrastructure.LightRag.csproj" />
+  </ItemGroup>
+</Project>

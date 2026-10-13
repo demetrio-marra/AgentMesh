@@ -1,3 +1,5 @@
+using CallbackViewer;
+
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 
@@ -27,18 +29,14 @@ app.MapPost("/callback/{**path}", async (HttpContext context, string? path) =>
         body = await reader.ReadToEndAsync();
     }
 
-    var headers = string.Join(Environment.NewLine, request.Headers.Select(h => $"  {h.Key}: {h.Value}"));
-
-    Console.WriteLine("=== Callback received ===");
-    Console.WriteLine($"Time: {DateTimeOffset.UtcNow:O}");
-    Console.WriteLine($"Method: {request.Method}");
-    Console.WriteLine($"Path: /{path}");
-    Console.WriteLine($"Query: {request.QueryString}");
-    Console.WriteLine("Headers:");
-    Console.WriteLine(headers);
-    Console.WriteLine("Body:");
-    Console.WriteLine(string.IsNullOrEmpty(body) ? "(empty)" : body);
-    Console.WriteLine("==========================");
+    var formattedRequest = CallbackRequestFormatter.Format(
+        DateTimeOffset.UtcNow,
+        request.Method,
+        path,
+        request.QueryString.ToString(),
+        request.Headers.Select(header => new KeyValuePair<string, string>(header.Key, header.Value.ToString())),
+        body);
+    Console.WriteLine(formattedRequest);
 
     context.Response.StatusCode = StatusCodes.Status200OK;
     await context.Response.WriteAsync("OK");
