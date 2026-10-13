@@ -30,7 +30,7 @@ Every agent in AgentMesh follows a consistent, layered architecture spread acros
 - **`AgentMesh`** � the contracts/models project (interfaces, input/output DTOs)
 - **`AgentMesh.Application`** � the application project (configurations, implementations)
 
-Registration of each agent is done manually in **`AgentMeshCLI/Program.cs`**.
+Registration of each agent is done manually in **`src/AgentMeshCLI/Program.cs`**.
 
 ### 2.1 Layer Overview
 
@@ -52,7 +52,7 @@ Registration of each agent is done manually in **`AgentMeshCLI/Program.cs`**.
 
 #### Step 1 � Define the Input DTO (`AgentMesh` project)
 
-Create `AgentMesh/Models/<AgentName>/<AgentName>AgentInput.cs`.
+Create `src/AgentMesh/Models/<AgentName>/<AgentName>AgentInput.cs`.
 
 The input DTO is a plain class with no base type. Model its properties around what the agent needs to run:
 
@@ -68,7 +68,7 @@ namespace AgentMesh.Models.<AgentName>
 
 #### Step 2 � Define the Output DTO (`AgentMesh` project)
 
-Create `AgentMesh/Models/<AgentName>/<AgentName>AgentOutput.cs`.
+Create `src/AgentMesh/Models/<AgentName>/<AgentName>AgentOutput.cs`.
 
 All output DTOs must implement `IAgentOutput`, which requires the three token-count properties:
 
@@ -87,7 +87,7 @@ namespace AgentMesh.Models.<AgentName>
 
 #### Step 3 � Define the Interface (`AgentMesh` project)
 
-Create `AgentMesh/Services/I<AgentName>Agent.cs`.
+Create `src/AgentMesh/Services/I<AgentName>Agent.cs`.
 
 Every agent interface extends `IExecutor<TInput, TOutput>` and is intentionally left empty � it serves only as a named contract for DI:
 
@@ -104,7 +104,7 @@ namespace AgentMesh.Services
 
 #### Step 4 � Define the Configuration (`AgentMesh.Application` project)
 
-Create `AgentMesh.Application/Configuration/<AgentName>AgentConfiguration.cs`.
+Create `src/AgentMesh.Application/Configuration/<AgentName>AgentConfiguration.cs`.
 
 The configuration class holds the agent's DI key, its `appsettings.json` section name, and the LLM binding properties. All agents must expose at minimum `LLM`, `ModelTemperature`, `SystemPrompt`, and `SystemPromptFile`. Add extra properties only when the agent requires them (e.g., `AllowedRecipients` in `RouterAgentConfiguration`):
 
@@ -126,7 +126,7 @@ namespace AgentMesh.Application.Configuration
 
 #### Step 5 � Implement the Agent (`AgentMesh.Application` project)
 
-Create `AgentMesh.Application/Services/<AgentName>Agent.cs`.
+Create `src/AgentMesh.Application/Services/<AgentName>Agent.cs`.
 
 - Inherit from `AgentBase<TParsed>`, where `TParsed` is the intermediate parsed type returned by `ParseStructuredResponse` (commonly `string`, but can be a tuple or a custom type for structured outputs).
 - Implement `I<AgentName>Agent`.
@@ -196,7 +196,7 @@ namespace AgentMesh.Application.Services
 The workflow step is required to "glue" agent requests and responses to the workflow state.
 It also provide capability to display progress
 
-Create `AgentMesh.Application/Workflows/Steps/<AgentName>WorkflowStep.cs`.
+Create `src/AgentMesh.Application/Workflows/Steps/<AgentName>WorkflowStep.cs`.
 
 Example:
 
@@ -269,7 +269,7 @@ public class FunctionalAnalystWorkflowStep(
 
 #### Step 7 � Create the System Prompt (`AgentMeshCLI` project)
 
-Create `AgentMeshCLI/Prompts/<AgentName>.SystemPrompt.txt` with the agent's system prompt text.
+Create `src/AgentMeshCLI/Prompts/<AgentName>.SystemPrompt.txt` with the agent's system prompt text.
 
 Set **Copy to Output Directory** to `Copy if newer` in the file's properties (or add the following to `AgentMeshCLI.csproj`):
 
@@ -281,7 +281,7 @@ Set **Copy to Output Directory** to `Copy if newer` in the file's properties (or
 
 #### Step 8 � Add `appsettings.json` Configuration (`AgentMeshCLI` project)
 
-Add a new entry under the `Agents` section in `AgentMeshCLI/appsettings.json`:
+Add a new entry under the `Agents` section in `src/AgentMeshCLI/appsettings.json`:
 
 ```json
 "Agents": {
@@ -295,7 +295,7 @@ Add a new entry under the `Agents` section in `AgentMeshCLI/appsettings.json`:
 
 The `LLM` value must match a key defined in the top-level `LLMs` configuration dictionary.
 
-#### Step 9 � Register in the DI Container (`AgentMeshCLI/Program.cs`)
+#### Step 9 � Register in the DI Container (`src/AgentMeshCLI/Program.cs`)
 
 Add the following registration block to `Program.cs`, following the same pattern used by all existing agents:
 

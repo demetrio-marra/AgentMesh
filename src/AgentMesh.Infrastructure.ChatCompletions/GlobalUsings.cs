@@ -1,0 +1,14 @@
+global using System;
+global using System.Collections.Generic;
+global using System.ClientModel;
+global using System.Globalization;
+global using System.Linq;
+global using System.Threading;
+global using System.Threading.Tasks;
+global using AgentMesh.Contracts;
+global using AgentMesh.Contracts.Configuration;
+global using AgentMesh.Contracts.Exceptions;
+global using AgentMesh.Contracts.Models.ChatClient;
+global using AgentMesh.Contracts.Models.ChatMessages;
+global using OpenAI;
+global using OpenAI.Chat;
