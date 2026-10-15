@@ -33,7 +33,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION="1.0.$(date -u +'%Y%m%d.%H%M%S')-ci.${GITHUB_SHA::12}"
+          VERSION="2.2.$(date -u +'%Y%m%d.%H%M%S')-ci.${GITHUB_SHA::12}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Package version: $VERSION"
 
@@ -50,7 +50,6 @@ jobs:
         run: >
           dotnet test tests/AgentMesh.Runtime.Tests/AgentMesh.Runtime.Tests.csproj
           --configuration Release
-          --no-build
 
       - name: Pack Runtime NuGet package
         run: >
