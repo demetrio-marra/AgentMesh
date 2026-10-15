@@ -52,18 +52,28 @@ public class ResponsesApiClientTests
         var stream = new FakeResponsesStreamClient(
             new ResponsesStreamUpdate(OutputTextDelta: "hel"),
             new ResponsesStreamUpdate(OutputTextDelta: "lo"),
-            new ResponsesStreamUpdate(TotalTokenCount: 8, InputTokenCount: 3, OutputTokenCount: 5));
+            new ResponsesStreamUpdate(TotalTokenCount: 8, InputTokenCount: 3, OutputTokenCount: 5),
+            new ResponsesStreamUpdate(OutputTextDelta: "!"));
         var client = CreateClient(stream);
 
         var result = await client.GenerateResponseAsync(["question"]);
 
-        Assert.Equal("hello", result.Text);
+        Assert.Equal("hello!", result.Text);
         Assert.Equal(8, result.TotalTokenCount);
         Assert.Equal(3, result.InputTokenCount);
         Assert.Equal(5, result.OutputTokenCount);
         Assert.True(stream.Options!.StreamingEnabled);
         Assert.Equal(0.7f, stream.Options.Temperature);
         Assert.Equal(ResponseReasoningEffortLevel.High, stream.Options.ReasoningOptions!.ReasoningEffortLevel);
+    }
+
+    [Fact]
+    public async Task NullInputSequencesAreRejected()
+    {
+        var client = CreateClient(new FakeResponsesStreamClient());
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => client.GenerateResponseAsync((IEnumerable<string>)null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => client.GenerateResponseAsync((IEnumerable<AgentMessage>)null!));
     }
 
     [Fact]
@@ -78,6 +88,34 @@ public class ResponsesApiClientTests
 
         Assert.Equal("public answer", result.Text);
         Assert.Equal("private reasoning", client.LastReasoning);
+    }
+
+    [Fact]
+    public async Task ReasoningIsResetWhenTheNextResponseHasNoReasoning()
+    {
+        var stream = new FakeResponsesStreamClient(
+            new ResponsesStreamUpdate(ReasoningTextDelta: "private reasoning"),
+            new ResponsesStreamUpdate(OutputTextDelta: "first answer"));
+        var client = CreateClient(stream);
+
+        await client.GenerateResponseAsync(["first question"]);
+        stream.Updates = [new ResponsesStreamUpdate(OutputTextDelta: "answer")];
+        await client.GenerateResponseAsync(["second question"]);
+
+        Assert.Equal(string.Empty, client.LastReasoning);
+    }
+
+    [Fact]
+    public async Task UnrelatedStreamErrorsArePropagated()
+    {
+        var stream = new FakeResponsesStreamClient(new ResponsesStreamUpdate(OutputTextDelta: "partial"));
+        var client = CreateClient(stream);
+        var providerError = new InvalidOperationException("stream failed");
+        stream.Failure = providerError;
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => client.GenerateResponseAsync(["question"]));
+
+        Assert.Same(providerError, exception);
     }
 
     [Fact]
@@ -130,17 +168,24 @@ public class ResponsesApiClientTests
     private sealed class FakeResponsesStreamClient(params ResponsesStreamUpdate[] updates) : IResponsesStreamClient
     {
         public CreateResponseOptions? Options { get; private set; }
+        public ResponsesStreamUpdate[] Updates { get; set; } = updates;
+        public Exception? Failure { get; set; }
 
         public async IAsyncEnumerable<ResponsesStreamUpdate> CreateResponseStreamingAsync(
             CreateResponseOptions options,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
         {
             Options = options;
-            foreach (var update in updates)
+            foreach (var update in Updates)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 yield return update;
                 await Task.Yield();
+            }
+
+            if (Failure is not null)
+            {
+                throw Failure;
             }
         }
     }

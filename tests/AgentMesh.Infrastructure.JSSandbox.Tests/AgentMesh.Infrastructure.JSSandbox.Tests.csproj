@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AgentMesh.Infrastructure.JSSandbox\AgentMesh.Infrastructure.JSSandbox.csproj" />
+  </ItemGroup>
+</Project>

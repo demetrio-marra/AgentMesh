@@ -1,28 +1,35 @@
+using System.Runtime.CompilerServices;
+
 namespace AgentMesh.Infrastructure.ChatCompletions
 {
     public class ChatCompletionsClient : IChatClient
     {
         private readonly string _systemPrompt;
         private readonly float _temperature;
-        private readonly ChatClient _client;
+        private readonly IChatCompletionsStreamClient _client;
 
 
         public ChatCompletionsClient(string model, string apikey, string endpoint, string temperature, string systemPrompt)
+            : this(model, apikey, endpoint, temperature, systemPrompt,
+                CreateSdkClient(model, apikey, endpoint))
+        {
+        }
+
+        internal ChatCompletionsClient(
+            string model,
+            string apikey,
+            string endpoint,
+            string temperature,
+            string systemPrompt,
+            IChatCompletionsStreamClient client)
         {
             if (model == null) throw new ArgumentNullException(nameof(model));
             if (apikey == null) throw new ArgumentNullException(nameof(apikey));
             if (endpoint == null) throw new ArgumentNullException(nameof(endpoint));
             if (systemPrompt == null) throw new ArgumentNullException(nameof(systemPrompt));
+            ArgumentNullException.ThrowIfNull(client);
 
-            _client = new ChatClient(
-              model: model,
-              credential: new ApiKeyCredential(apikey),
-              options: new OpenAIClientOptions()
-              {
-                  Endpoint = new Uri(endpoint)
-              }
-            );
-
+            _client = client;
             _systemPrompt = systemPrompt;
             _temperature = float.Parse(temperature, CultureInfo.InvariantCulture);
         }
@@ -84,18 +91,17 @@ namespace AgentMesh.Infrastructure.ChatCompletions
 
             try
             {
-                await foreach (var update in _client.CompleteChatStreamingAsync(chatMessages, chatCompletionOptions, cancellationToken))
+                await foreach (var update in _client.CompleteChatStreamingAsync(chatMessages, chatCompletionOptions, cancellationToken)
+                    .WithCancellation(cancellationToken))
                 {
-                    foreach (var part in update.ContentUpdate)
+                    if (update.TextDelta is not null)
                     {
-                        responseTextBuilder.Append(part.Text);
+                        responseTextBuilder.Append(update.TextDelta);
                     }
-                    if (update.Usage != null)
-                    {
-                        totalTokenCount = update.Usage.TotalTokenCount;
-                        inputTokenCount = update.Usage.InputTokenCount;
-                        outputTokenCount = update.Usage.OutputTokenCount;
-                    }
+
+                    totalTokenCount = update.TotalTokenCount ?? totalTokenCount;
+                    inputTokenCount = update.InputTokenCount ?? inputTokenCount;
+                    outputTokenCount = update.OutputTokenCount ?? outputTokenCount;
                 }
             }
             catch (Exception ex) when (ex.GetType().Name == "ClientResultException" && ex.Message.Contains("Tool choice is none, but model called a tool"))
@@ -125,6 +131,63 @@ namespace AgentMesh.Infrastructure.ChatCompletions
                 .Select(m => m.Content);
             var mergedPrompt = string.Join("\n", systemMessages);
             return ChatMessage.CreateSystemMessage(mergedPrompt);
+        }
+
+        private static IChatCompletionsStreamClient CreateSdkClient(string model, string apikey, string endpoint)
+        {
+            if (model == null) throw new ArgumentNullException(nameof(model));
+            if (apikey == null) throw new ArgumentNullException(nameof(apikey));
+            if (endpoint == null) throw new ArgumentNullException(nameof(endpoint));
+
+            var client = new ChatClient(
+                model: model,
+                credential: new ApiKeyCredential(apikey),
+                options: new OpenAIClientOptions
+                {
+                    Endpoint = new Uri(endpoint)
+                });
+
+            return new SdkChatCompletionsStreamClient(client);
+        }
+    }
+
+    internal interface IChatCompletionsStreamClient
+    {
+        IAsyncEnumerable<ChatCompletionsStreamUpdate> CompleteChatStreamingAsync(
+            IEnumerable<ChatMessage> messages,
+            ChatCompletionOptions options,
+            CancellationToken cancellationToken);
+    }
+
+    internal sealed record ChatCompletionsStreamUpdate(
+        string? TextDelta = null,
+        int? TotalTokenCount = null,
+        int? InputTokenCount = null,
+        int? OutputTokenCount = null);
+
+    internal sealed class SdkChatCompletionsStreamClient(ChatClient client) : IChatCompletionsStreamClient
+    {
+        public async IAsyncEnumerable<ChatCompletionsStreamUpdate> CompleteChatStreamingAsync(
+            IEnumerable<ChatMessage> messages,
+            ChatCompletionOptions options,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await foreach (var update in client.CompleteChatStreamingAsync(messages, options, cancellationToken)
+                .WithCancellation(cancellationToken))
+            {
+                foreach (var part in update.ContentUpdate)
+                {
+                    yield return new ChatCompletionsStreamUpdate(TextDelta: part.Text);
+                }
+
+                if (update.Usage is not null)
+                {
+                    yield return new ChatCompletionsStreamUpdate(
+                        TotalTokenCount: update.Usage.TotalTokenCount,
+                        InputTokenCount: update.Usage.InputTokenCount,
+                        OutputTokenCount: update.Usage.OutputTokenCount);
+                }
+            }
         }
     }
 }
