@@ -55,7 +55,6 @@ jobs:
         run: >
           dotnet pack src/AgentMesh.Runtime/AgentMesh.Runtime.csproj
           --configuration Release
-          --no-build
           --output ./artifacts
           -p:PackageVersion=${{ steps.version.outputs.version }}
 
