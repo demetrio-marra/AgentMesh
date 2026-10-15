@@ -11,7 +11,7 @@
     <RootNamespace>AgentMesh.Runtime</RootNamespace>
     <PackageId>AgentMesh.Runtime</PackageId>
     <Version>2.1.4</Version>
-    <Authors>AgentMesh</Authors>
+    <Authors>Demetrio Marra</Authors>
     <Description>Plugin-facing AgentMesh runtime and HTTP API host services.</Description>
     <PackageTags>ai;orchestration;pipeline;plugins;runtime;http</PackageTags>
     <IsPackable>true</IsPackable>
