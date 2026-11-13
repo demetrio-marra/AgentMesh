@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\AgentMesh.Infrastructure.SystemOne\AgentMesh.Infrastructure.SystemOne.csproj" />
+    <ProjectReference Include="..\..\src\AgentMesh.Contracts\AgentMesh.Contracts.csproj" />
+  </ItemGroup>
+</Project>

@@ -16,7 +16,7 @@ AgentMesh puts the **pipeline**, not an individual agent or code step, at the ce
 - **Flexible serialization**: Agent inputs can use a custom serializer instead of assuming JSON, and parameter display serializers can truncate, summarize, or omit large values from progress and diagnostic output.
 - **Token and cost accounting**: Agent execution statistics include input and output tokens. Configure per-million-token prices for token-based costs or an optional hourly rate for time-based pricing, and AgentMesh calculates execution totals.
 - **Lean REST API**: Expose a plugin pipeline through authenticated `POST /api/requests` and `POST /api/requests/async` endpoints, with optional workflow callbacks. The streamed `POST /api/requests/stream` and `POST /api/summarize/stream` endpoints deliver progress and the terminal result over one authenticated SSE response. `POST /api/summarize` and `POST /api/summarize/async` remain available for other clients.
-- **Service connectors for custom pipelines**: Developers can use connectors for [OpenAI ChatCompletions-compatible endpoints](https://platform.openai.com/docs/api-reference/chat), [Mem0](https://mem0.ai/) , [LightRAG](https://github.com/hkuds/lightrag) , reranker-compatible endpoints such as [Cohere](https://cohere.com/) , and [JSCodeSandbox](https://github.com/demetrio-marra/JSCodeSandbox) for JavaScript code execution .
+- **Service connectors for custom pipelines**: Developers can use connectors for [OpenAI ChatCompletions-compatible endpoints](https://platform.openai.com/docs/api-reference/chat), [Mem0](https://mem0.ai/), [LightRAG](https://github.com/hkuds/LightRAG), reranker-compatible endpoints such as [Cohere](https://cohere.com/), [TypeSafe System One](https://docs.typesafe.ai/api/system-one) for typed text decisions, and [JSCodeSandbox](https://github.com/demetrio-marra/JSCodeSandbox) for JavaScript code execution.
 - **Container and Kubernetes ready**: Plugin applications own their Dockerfiles and deployment manifests, while AgentMesh Runtime provides the plugin-facing host model and deployment guidance for running one pipeline service per deployment.
 
 ## Architecture
@@ -25,7 +25,7 @@ AgentMesh puts the **pipeline**, not an individual agent or code step, at the ce
 | --- | --- |
 | `AgentMesh` | Domain entities and shared pipeline, parameter, step, agent, and executor abstractions. |
 | `AgentMesh.Contracts` | Infrastructure service definitions and integration contracts. |
-| `AgentMesh.Infrastructure.*` | Adapters for OpenAI-compatible LLMs, Mem0, LightRAG, Cohere, and the JavaScript sandbox. |
+| `AgentMesh.Infrastructure.*` | Adapters for OpenAI-compatible LLMs, Mem0, LightRAG, Cohere, TypeSafe System One, and the JavaScript sandbox. |
 | `AgentMesh.Application` | Internal application framework that implements pipeline execution, steps, agents, and workflow behavior. |
 | `AgentMesh.Runtime` | Plugin-facing NuGet package that provides HTTP APIs, authentication, callbacks, Swagger, framework registration, and the bundled Application assembly. |
 | Pipeline plugin | Executable ASP.NET Core service that owns one custom chat pipeline, configuration, dependency registration, host construction, and deployment. |
@@ -237,13 +237,74 @@ kubectl rollout status deployment/agentmesh-pipeline-a
 
 ## External Boundaries
 
-The framework integrates through these contracts:
+Infrastructure boundaries and standalone connectors include:
 
 - `IChatCompletionsClient` via `ChatCompletionsClientFactory` and `ChatCompletionsClient`
 - `IKnowledgeService` via `LightRagKnowledgeService`
 - `IAgentMemoryService` via `Mem0AgentMemoryService`
 - `IRerankerService` via `CohereV1RerankerService`
+- `ISystemOneService` via `SystemOneService` (standalone text-only connector)
 - `IJSSandbox` via `SESJSSandboxClient`
+
+### TypeSafe System One Connector
+
+`AgentMesh.Infrastructure.SystemOne` provides a standalone `ISystemOneService` implementation. Construct it directly with an `HttpClient` and `SystemOneServiceConfiguration`; it is not automatically registered with Runtime or invoked by a pipeline:
+
+```csharp
+using AgentMesh.Contracts.Models.SystemOne;
+using AgentMesh.Contracts.Services;
+using AgentMesh.Infrastructure.SystemOne;
+
+using var httpClient = new HttpClient();
+var configuration = new SystemOneServiceConfiguration
+{
+    BaseUrl = "https://api.typesafe.ai",
+    ApiKey = "<your-typesafe-api-key>",
+    Model = "jev-1.14.0",
+    TimeoutSeconds = 30
+};
+ISystemOneService systemOne = new SystemOneService(httpClient, configuration);
+
+var input = new SystemOneInput(
+    SystemOneJsonValue.Parse("""{"contract":"Example terms"}"""),
+    new Dictionary<string, SystemOneQuestion>
+    {
+        ["has_termination_clause"] = new SystemOneNoulQuestion
+        {
+            Instructions = SystemOneJsonValue.From("Does the contract allow either party to end it early?")
+        },
+        ["risk_level"] = new SystemOneScoreQuestion
+        {
+            Instructions = SystemOneJsonValue.From("Rate the termination risk."),
+            Criteria =
+            [
+                SystemOneJsonValue.From("Low"),
+                SystemOneJsonValue.From("Medium"),
+                SystemOneJsonValue.From("High")
+            ]
+        }
+    });
+
+SystemOneResult result = await systemOne.EvaluateAsync(input);
+Console.WriteLine($"{result.Model}: input={result.Usage.InputTokens}, output={result.Usage.OutputTokens}");
+```
+
+For consumers that store these values in JSON, an example configuration shape is:
+
+```json
+{
+  "SystemOneService": {
+    "BaseUrl": "https://api.typesafe.ai",
+    "ApiKey": "<your-typesafe-api-key>",
+    "Model": "jev-1.14.0",
+    "TimeoutSeconds": 30
+  }
+}
+```
+
+The connector does not bind this section or register itself; consumers supply the values when constructing `SystemOneService`. Use an HTTPS provider URL and supply the API key through your application's secret-management mechanism. Pin a versioned model such as `jev-1.14.0` when behavior stability matters; aliases can move, and `SystemOneResult.Model` reports the model that actually answered.
+
+The connector accepts text state as a string, object, or array and supports Noul, Choice, and Score questions. Images/assets, Box questions, and long-context opt-in are not supported. Results expose the provider-reported input and output token counts and typed answers, including fractional Score values. The connector does not estimate tokens, calculate monetary costs, or add pricing configuration. Consumer registration, orchestration, and financial reporting remain the responsibility of the consuming application.
 
 ## License
 
