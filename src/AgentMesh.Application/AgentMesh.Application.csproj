@@ -15,6 +15,7 @@
     <ProjectReference Include="..\AgentMesh.Infrastructure.LightRag\AgentMesh.Infrastructure.LightRag.csproj" />
     <ProjectReference Include="..\AgentMesh.Infrastructure.Mem0\AgentMesh.Infrastructure.Mem0.csproj" />
     <ProjectReference Include="..\AgentMesh.Infrastructure.ChatCompletions\AgentMesh.Infrastructure.ChatCompletions.csproj" />
+    <ProjectReference Include="..\AgentMesh.Infrastructure.SystemOne\AgentMesh.Infrastructure.SystemOne.csproj" />
   </ItemGroup>
 
   <ItemGroup>
